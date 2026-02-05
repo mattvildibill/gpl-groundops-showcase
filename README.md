@@ -1,6 +1,27 @@
 # GroundOps GPL Showcase
 
-GroundOps is a compact, high-signal “Ground Product Line–style” mission-ops pipeline: mission planning → approval → event-driven tasking → audit trail → executive summary. It’s intentionally small (3 services + broker + UI) but demonstrates real boundaries, traceability, and UX polish.
+GroundOps is a compact mission-ops pipeline: plan a mission window, approve it, generate ops tasking via events, record an audit trail, and surface an executive summary. It’s intentionally small (3 services + broker + UI) but built to feel like real ground/mission operations software.
+
+## Recruiter TL;DR
+- **What it is:** Mission planning → approval → event-driven tasking → audit trail → executive summary.
+- **Why it matters:** Mirrors ground/mission-ops patterns: integration across services, traceability, and clear security boundaries.
+- **How to run:** One command, local-only, free (Docker Compose).
+
+**Proof of traceability:** Every user action and message is tagged with a correlation ID visible in the UI and logs.
+
+## Tech Stack (in one glance)
+- **Backend:** Java 21 + Spring Boot 3.x
+- **Messaging:** ActiveMQ Artemis (JMS)
+- **Auth:** Local JWT roles (PLANNER, OPS, AUDITOR, EXEC)
+- **Infra:** Docker Compose
+- **Testing:** Testcontainers integration test
+- **UI:** React + Vite + TypeScript + Tailwind
+
+## Screenshots
+![Mission Planner](docs/screenshots/mission-planner.png)
+![Ops Tasking](docs/screenshots/ops-tasking.png)
+![Executive Summary](docs/screenshots/executive-summary.png)
+![Audit Trail](docs/screenshots/audit-trail.png)
 
 ## Architecture (at a glance)
 ```mermaid
@@ -23,12 +44,6 @@ graph LR
   Broker --> Ops
   Broker --> Audit
 ```
-
-## Screenshots
-![Mission Planner](docs/screenshots/mission-planner.png)
-![Ops Tasking](docs/screenshots/ops-tasking.png)
-![Executive Summary](docs/screenshots/executive-summary.png)
-![Audit Trail](docs/screenshots/audit-trail.png)
 
 ## Quickstart
 Prereqs: Docker Desktop, JDK 21 (only needed for local builds/tests).
@@ -63,14 +78,13 @@ Seed demo data (optional):
 4. Audit Trail records all actions with correlation IDs.
 5. Executive Summary reflects readiness and recent changes.
 
-## What This Demonstrates
-- Microservices with clear service boundaries
-- REST + async messaging (JMS/Artemis)
-- Role-based access control with local JWTs
-- End-to-end correlation IDs (HTTP → events → logs)
-- Containerized local dev via docker compose
-- Testcontainers integration test
-- Polished mission-ops UI
+## Why this maps to Ground Product Line (GPL) work
+- **Mission flow realism:** Planning → approval → tasking mirrors real ops pipelines.
+- **Integration across boundaries:** REST for user actions, JMS events for system-to-system handoffs.
+- **Traceability built-in:** Correlation IDs propagate from HTTP → messaging → logs and UI.
+- **Security boundaries are explicit:** Roles are enforced per service (planner/ops/audit/exec).
+- **Operational credibility:** Containerized local stack and an integration test that exercises the broker.
+- **UX polish:** A mission-ops dashboard that’s clean, navigable, and grounded in the domain.
 
 ## Docs
 - Architecture: docs/architecture.md
@@ -79,11 +93,24 @@ Seed demo data (optional):
 - ADRs: docs/adr/
 - Contracts: contracts/ (OpenAPI + event schemas)
 
-## Design Notes (Intentional Tradeoffs)
-- **Minimal persistence:** In-memory stores keep the footprint tiny and fast.
-- **Local auth only:** JWTs are dev-mode; no external IdP needed.
-- **Focused scope:** Demonstrates traceability over full RBAC or multi-tenant complexity.
-- **JMS over streaming:** Clear event boundaries, not maximum throughput.
+## Design Notes (What I intentionally kept small)
+- **No cloud deployment:** Local-only so it runs free and fast.
+- **No full identity provider:** JWTs are dev-mode for clarity.
+- **Minimal constraints engine:** A few realistic checks rather than a full planner.
+- **In-memory stores:** Enough to demonstrate flow without operational overhead.
+- **JMS over streaming:** Clear event boundaries rather than scale tuning.
+
+## Running Tests
+```bash
+mvn -q -DskipTests=false test
+```
+
+> Note: Requires Maven 3.9+ locally. Tests use Testcontainers for Artemis.
+
+## Capture Screenshots
+```bash
+./scripts/capture-screenshots.sh
+```
 
 ## Repo Layout
 ```
@@ -109,18 +136,6 @@ services/
   ops-service/
   audit-service/
 web/
-```
-
-## Running Tests
-```bash
-mvn -q -DskipTests=false test
-```
-
-> Note: Requires Maven 3.9+ locally. Tests use Testcontainers for Artemis.
-
-## Capture Screenshots
-```bash
-./scripts/capture-screenshots.sh
 ```
 
 ---
