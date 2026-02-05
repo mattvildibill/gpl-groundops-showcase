@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "PlanApproved.v1.json",
+  "title": "PlanApproved.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "eventType",
+    "timestamp",
+    "correlationId",
+    "planId",
+    "asset",
+    "windowStart",
+    "windowEnd",
+    "priority",
+    "approvedBy"
+  ],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "eventType": { "const": "PlanApproved.v1" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "correlationId": { "type": "string" },
+    "planId": { "type": "string" },
+    "asset": { "type": "string" },
+    "windowStart": { "type": "string", "format": "date-time" },
+    "windowEnd": { "type": "string", "format": "date-time" },
+    "priority": { "type": "string", "enum": ["ROUTINE", "PRIORITY", "CRITICAL"] },
+    "approvedBy": { "type": "string" }
+  }
+}

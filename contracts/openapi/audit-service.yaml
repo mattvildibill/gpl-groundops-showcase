@@ -1,0 +1,73 @@
+openapi: 3.0.3
+info:
+  title: audit-service
+  version: 0.1.0
+  description: Audit trail API for GroundOps GPL showcase.
+servers:
+  - url: http://localhost:8082
+security:
+  - bearerAuth: []
+paths:
+  /api/audit:
+    get:
+      summary: Query audit events
+      parameters:
+        - name: correlationId
+          in: query
+          schema:
+            type: string
+        - name: actor
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Audit event list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditEvent'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AuditEvent:
+      type: object
+      required: [eventId, eventType, timestamp, correlationId, actor, action, summary, details]
+      properties:
+        eventId:
+          type: string
+        eventType:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        correlationId:
+          type: string
+        actor:
+          type: string
+        action:
+          type: string
+        summary:
+          type: string
+        details:
+          type: object

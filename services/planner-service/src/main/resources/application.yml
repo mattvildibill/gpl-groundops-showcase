@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: planner-service
+  artemis:
+    broker-url: ${SPRING_ARTEMIS_BROKER_URL:tcp://localhost:61616}
+    user: ${SPRING_ARTEMIS_USER:admin}
+    password: ${SPRING_ARTEMIS_PASSWORD:admin}
+  jms:
+    pub-sub-domain: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:local-dev-secret-32-bytes-minimum!}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    root: INFO
+
+server:
+  port: 8080

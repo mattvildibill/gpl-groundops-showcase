@@ -1,0 +1,171 @@
+openapi: 3.0.3
+info:
+  title: planner-service
+  version: 0.1.0
+  description: Mission planning API for GroundOps GPL showcase.
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+paths:
+  /api/plans:
+    get:
+      summary: List mission plans
+      responses:
+        '200':
+          description: Plan list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlanResponse'
+    post:
+      summary: Create a mission plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlanRequest'
+      responses:
+        '200':
+          description: Created plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanResponse'
+        '400':
+          description: Validation error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/plans/{planId}:
+    get:
+      summary: Get plan details
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Plan detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanResponse'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/plans/{planId}/approve:
+    post:
+      summary: Approve a mission plan
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Approved plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanResponse'
+        '400':
+          description: Constraint violation
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '409':
+          description: Already approved
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CreatePlanRequest:
+      type: object
+      required: [asset, startTime, endTime, priority]
+      properties:
+        asset:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        priority:
+          $ref: '#/components/schemas/PlanPriority'
+        notes:
+          type: string
+    PlanResponse:
+      type: object
+      required: [id, asset, startTime, endTime, priority, status, createdBy, createdAt]
+      properties:
+        id:
+          type: string
+        asset:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        priority:
+          $ref: '#/components/schemas/PlanPriority'
+        notes:
+          type: string
+        status:
+          $ref: '#/components/schemas/PlanStatus'
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        approvedBy:
+          type: string
+        approvedAt:
+          type: string
+          format: date-time
+        correlationId:
+          type: string
+    PlanPriority:
+      type: string
+      enum: [ROUTINE, PRIORITY, CRITICAL]
+    PlanStatus:
+      type: string
+      enum: [DRAFT, APPROVED]
+    ProblemDetail:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+        correlationId:
+          type: string

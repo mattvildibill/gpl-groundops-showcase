@@ -1,0 +1,77 @@
+services:
+  broker:
+    image: apache/activemq-artemis:2.35.0
+    container_name: groundops-broker
+    environment:
+      ARTEMIS_USER: admin
+      ARTEMIS_PASSWORD: admin
+      ARTEMIS_REQUIRE_LOGIN: "true"
+      ANONYMOUS_LOGIN: "false"
+    ports:
+      - "61616:61616"
+      - "8161:8161"
+
+  planner-service:
+    build:
+      context: ..
+      dockerfile: services/planner-service/Dockerfile
+    container_name: groundops-planner
+    environment:
+      SPRING_ARTEMIS_BROKER_URL: tcp://broker:61616?retryInterval=1000&retryIntervalMultiplier=1.0&maxRetryInterval=5000&reconnectAttempts=-1
+      SPRING_ARTEMIS_USER: admin
+      SPRING_ARTEMIS_PASSWORD: admin
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-32-bytes-minimum!}
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - broker
+
+  ops-service:
+    build:
+      context: ..
+      dockerfile: services/ops-service/Dockerfile
+    container_name: groundops-ops
+    environment:
+      SPRING_ARTEMIS_BROKER_URL: tcp://broker:61616?retryInterval=1000&retryIntervalMultiplier=1.0&maxRetryInterval=5000&reconnectAttempts=-1
+      SPRING_ARTEMIS_USER: admin
+      SPRING_ARTEMIS_PASSWORD: admin
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-32-bytes-minimum!}
+      SERVER_PORT: 8081
+    ports:
+      - "8081:8081"
+    depends_on:
+      - broker
+
+  audit-service:
+    build:
+      context: ..
+      dockerfile: services/audit-service/Dockerfile
+    container_name: groundops-audit
+    environment:
+      SPRING_ARTEMIS_BROKER_URL: tcp://broker:61616?retryInterval=1000&retryIntervalMultiplier=1.0&maxRetryInterval=5000&reconnectAttempts=-1
+      SPRING_ARTEMIS_USER: admin
+      SPRING_ARTEMIS_PASSWORD: admin
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-32-bytes-minimum!}
+      SERVER_PORT: 8082
+    ports:
+      - "8082:8082"
+    depends_on:
+      - broker
+
+  web:
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
+    container_name: groundops-web
+    environment:
+      VITE_PLANNER_URL: http://localhost:8080
+      VITE_OPS_URL: http://localhost:8081
+      VITE_AUDIT_URL: http://localhost:8082
+      VITE_JWT_SECRET: ${JWT_SECRET:-local-dev-secret-32-bytes-minimum!}
+    ports:
+      - "5173:5173"
+    depends_on:
+      - planner-service
+      - ops-service
+      - audit-service

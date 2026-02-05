@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: 15 23 42;
+  --surface: 255 255 255;
+  --muted: 241 245 249;
+  --accent: 14 165 233;
+  --accent-strong: 3 105 161;
+  --warning: 245 158 11;
+  --success: 16 185 129;
+  --cloud: 226 232 240;
+}
+
+body {
+  font-family: 'Space Grotesk', ui-sans-serif, sans-serif;
+  background: radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 45%),
+    radial-gradient(circle at 25% 25%, rgba(16, 185, 129, 0.08), transparent 55%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+  color: rgb(var(--ink));
+  min-height: 100vh;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-surface/90 shadow-soft border border-cloud/70 backdrop-blur;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold;
+  }
+
+  .section-title {
+    @apply text-sm uppercase tracking-[0.18em] text-ink/60 font-semibold;
+  }
+
+  .data-label {
+    @apply text-xs uppercase tracking-[0.2em] text-ink/50;
+  }
+}
