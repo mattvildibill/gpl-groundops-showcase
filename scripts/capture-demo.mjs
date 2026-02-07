@@ -53,15 +53,15 @@ const run = async () => {
   await page.getByText('Mission Operations Console').waitFor({ timeout: 15000 });
 
   await selectRole(page, 'PLANNER');
-  await pause(page, 700);
+  await pause(page, 1200);
 
   await page.getByRole('button', { name: 'Submit Plan' }).click();
-  await pause(page, 900);
+  await pause(page, 1500);
 
   const approveButton = page.getByRole('button', { name: 'Approve' }).first();
   await approveButton.waitFor({ timeout: 15000 });
   await approveButton.click();
-  await pause(page, 1200);
+  await pause(page, 1800);
 
   await selectRole(page, 'OPS');
   const tasksResponse = page.waitForResponse(
@@ -73,7 +73,7 @@ const run = async () => {
   await tasksResponse;
   await page.getByRole('heading', { name: 'Tasking Ticket', exact: true }).waitFor({ timeout: 15000 });
   await page.getByText(/TSK-\d+/).first().waitFor({ timeout: 30000 });
-  await pause(page, 1200);
+  await pause(page, 2000);
 
   await selectRole(page, 'AUDITOR');
   const auditResponse = page.waitForResponse(
@@ -85,7 +85,7 @@ const run = async () => {
   await auditResponse;
   await page.getByRole('heading', { name: 'Audit Events', exact: true }).waitFor({ timeout: 15000 });
   await page.getByText(/PLAN_|OPS_/).first().waitFor({ timeout: 15000 });
-  await pause(page, 1200);
+  await pause(page, 2000);
 
   await selectRole(page, 'EXEC');
   const execResponses = Promise.all([
@@ -106,7 +106,7 @@ const run = async () => {
   await page.waitForURL('**/executive');
   await execResponses;
   await page.getByText('Mission readiness at a glance').waitFor({ timeout: 15000 });
-  await pause(page, 1600);
+  await pause(page, 2400);
 
   await context.close();
   await browser.close();
