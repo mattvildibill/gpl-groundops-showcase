@@ -1,7 +1,5 @@
 # GroundOps GPL Showcase
 
-[![CI](https://github.com/mattvildibill/gpl-groundops-showcase/actions/workflows/ci.yml/badge.svg)](https://github.com/mattvildibill/gpl-groundops-showcase/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
 GroundOps is a compact mission-ops pipeline: plan a mission window, approve it, generate ops tasking via events, record an audit trail, and surface an executive summary. It’s intentionally small (3 services + broker + UI) but built to feel like real ground/mission operations software.
