@@ -1,8 +1,12 @@
 # GroundOps GPL Showcase
 
+[![CI](https://github.com/mattvildibill/gpl-groundops-showcase/actions/workflows/ci.yml/badge.svg)](https://github.com/mattvildibill/gpl-groundops-showcase/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+
 GroundOps is a compact mission-ops pipeline: plan a mission window, approve it, generate ops tasking via events, record an audit trail, and surface an executive summary. It’s intentionally small (3 services + broker + UI) but built to feel like real ground/mission operations software.
 
-## Recruiter TL;DR
+## At a glance
 - **What it is:** Mission planning → approval → event-driven tasking → audit trail → executive summary.
 - **Why it matters:** Mirrors ground/mission-ops patterns: integration across services, traceability, and clear security boundaries.
 - **How to run:** One command, local-only, free (Docker Compose).
@@ -16,6 +20,14 @@ GroundOps is a compact mission-ops pipeline: plan a mission window, approve it, 
 - **Infra:** Docker Compose
 - **Testing:** Testcontainers integration test
 - **UI:** React + Vite + TypeScript + Tailwind
+
+## Where to start
+- Demo story: docs/demo-walkthrough.md
+- Architecture: docs/architecture.md
+- Proof (tests): tests/integration-tests/ + `./mvnw test`
+
+## Happy path demo
+![Happy path demo](docs/screenshots/demo.gif)
 
 ## Screenshots
 ![Mission Planner](docs/screenshots/mission-planner.png)
@@ -102,15 +114,25 @@ Seed demo data (optional):
 
 ## Running Tests
 ```bash
-mvn -q -DskipTests=false test
+./mvnw -q test
 ```
 
-> Note: Requires Maven 3.9+ locally. Tests use Testcontainers for Artemis.
+> Note: Requires Docker for Testcontainers (Artemis).
 
 ## Capture Screenshots
 ```bash
 ./scripts/capture-screenshots.sh
 ```
+
+## Capture Demo GIF
+```bash
+./scripts/capture-demo-gif.sh
+```
+
+## Repo metadata (GitHub About)
+Suggested description: A compact mission-ops pipeline (planning → approval → tasking → audit → exec view) built with Java, Spring Boot, JMS, and a polished UI.
+
+Suggested topics: java, spring-boot, microservices, jms, activemq, docker-compose, react, vite, tailwind, testcontainers, mission-ops, audit-logging
 
 ## Repo Layout
 ```
@@ -131,6 +153,7 @@ scripts/
   generate-token.sh
   seed-demo.sh
   capture-screenshots.sh
+  capture-demo-gif.sh
 services/
   planner-service/
   ops-service/
