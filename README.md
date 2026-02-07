@@ -24,9 +24,6 @@ GroundOps is a compact mission-ops pipeline: plan a mission window, approve it, 
 - Architecture: docs/architecture.md
 - Proof (tests): tests/integration-tests/ + `./mvnw test`
 
-## Happy path demo
-![Happy path demo](docs/screenshots/demo.gif)
-
 ## Screenshots
 ![Mission Planner](docs/screenshots/mission-planner.png)
 ![Ops Tasking](docs/screenshots/ops-tasking.png)
