@@ -124,11 +124,6 @@ Seed demo data (optional):
 ./scripts/capture-demo-gif.sh
 ```
 
-## Repo metadata (GitHub About)
-Suggested description: A compact mission-ops pipeline (planning → approval → tasking → audit → exec view) built with Java, Spring Boot, JMS, and a polished UI.
-
-Suggested topics: java, spring-boot, microservices, jms, activemq, docker-compose, react, vite, tailwind, testcontainers, mission-ops, audit-logging
-
 ## Repo Layout
 ```
 README.md
