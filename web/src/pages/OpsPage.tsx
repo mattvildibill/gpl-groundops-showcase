@@ -1,9 +1,6 @@
-import { Link } from 'react-router-dom';
+import { EvidenceLink } from '../components/EvidenceLink';
 import { useEffect, useMemo, useState } from 'react';
 import { Radar, Rows3 } from 'lucide-react';
-import { MissionTimeline } from '../components/MissionTimeline';
-import { getStoredRole } from '../lib/auth';
-import { DEMO_MODE } from '../lib/mode';
 import { Task, getTasks } from '../lib/api';
 import { CopyButton } from '../components/CopyButton';
 import { PageHeader } from '../components/PageHeader';
@@ -40,11 +37,10 @@ export default function OpsPage() {
     <div className="space-y-8">
       <PageHeader
         eyebrow="Ops Tasking"
-        title="Event-driven tasking tickets"
-        subtitle="Ops listens for PlanApproved events, issues tasking tickets, and publishes OpsTaskCreated."
+        title="Operations tickets"
+        subtitle="Work tickets created from approved mission windows. These record the handoff, not a completed survey."
       />
 
-      {DEMO_MODE && ['OPS', 'EXEC'].includes(getStoredRole() ?? '') && <MissionTimeline onRecovered={() => void loadTasks()} />}
       {error && <p role="alert" className="card p-4 text-warning">{error} Retrying every five seconds.</p>}
       <p className="text-sm text-ink/70">Repeated delivery is deduplicated while Ops remains running. This view checks for new tickets every five seconds.</p>
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -59,7 +55,7 @@ export default function OpsPage() {
           <div className="mt-6 space-y-3">
             {!loaded ? <p role="status">Loading tickets…</p> : error ? <p>Task queue unavailable.</p> : tasks.length === 0 ? (
               <div className="rounded-xl border border-dashed border-cloud/80 p-6 text-sm text-ink/60">
-                No tasking tickets yet. Approve a plan to create one.
+                No tickets yet. Return to Mission workspace to approve a mission or resume a delayed delivery.
               </div>
             ) : (
               tasks.map((task) => (
@@ -112,7 +108,7 @@ export default function OpsPage() {
                 </div>
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                   <div className="text-xs text-ink/70">Operator: {selectedTask.createdBy}</div>
-                  <Link className="text-xs underline" to={`/audit?correlationId=${encodeURIComponent(selectedTask.correlationId ?? '')}`}>Trace handoff</Link>
+                  <EvidenceLink trace={selectedTask.correlationId}>Trace handoff</EvidenceLink>
                   <CopyButton text={selectedTask.correlationId ?? ''} label="Copy correlation" />
                 </div>
               </div>

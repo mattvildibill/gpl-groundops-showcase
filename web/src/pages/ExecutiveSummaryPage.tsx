@@ -31,11 +31,11 @@ export default function ExecutiveSummaryPage() {
   const readiness = total === 0 ? 0 : Math.round((approved / total) * 100);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <PageHeader
         eyebrow="Executive Summary"
-        title="Approval coverage across the pipeline"
-        subtitle="A small pipeline snapshot. Approval is a planning decision; it does not establish spacecraft readiness or successful execution."
+        title="Mission overview"
+        subtitle="How many missions are approved and how many have reached operations. Approval does not mean a survey is complete."
       />
 
       {error && <p role="alert" className="card p-4 text-warning">{error} Summary unavailable. Check your role and connection.</p>}

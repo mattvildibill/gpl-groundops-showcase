@@ -27,21 +27,11 @@ const tempDir = path.join(outputDir, '_demo-video');
 const gifPath = path.join(outputDir, 'demo.gif');
 
 const pause = (page, ms) => page.waitForTimeout(ms);
-const selectRole = async (page, role) => {
-  await page.getByRole('button', { name: role }).click();
-  await page.waitForFunction(
-    (expectedRole) =>
-      localStorage.getItem('groundops.role') === expectedRole &&
-      Boolean(localStorage.getItem('groundops.token')),
-    role
-  );
-};
-
 const run = async () => {
   await mkdir(outputDir, { recursive: true });
   await mkdir(tempDir, { recursive: true });
 
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({executablePath:process.env.CHROMIUM_PATH || '/usr/bin/chromium',args:['--no-sandbox']});
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     recordVideo: { dir: tempDir, size: { width: 1440, height: 900 } },
@@ -50,63 +40,23 @@ const run = async () => {
   const video = page.video();
 
   await page.goto(baseUrl, { waitUntil: 'networkidle' });
-  await page.getByText('Mission Operations Console').waitFor({ timeout: 15000 });
-
-  await selectRole(page, 'PLANNER');
+  await page.getByRole('heading', { name: 'From mission request to operations' }).waitFor();
   await pause(page, 1200);
-
-  await page.getByRole('button', { name: 'Submit Plan' }).click();
-  await pause(page, 1500);
-
-  const approveButton = page.getByRole('button', { name: 'Approve' }).first();
-  await approveButton.waitFor({ timeout: 15000 });
-  await approveButton.click();
+  await page.getByRole('button', { name: 'Save mission', exact:true }).click();
+  await pause(page, 1200);
+  await page.getByRole('button', { name: 'Approve mission', exact:true }).click();
+  await page.getByRole('heading', { name: 'Approved · awaiting handoff' }).waitFor();
   await pause(page, 1800);
-
-  await selectRole(page, 'OPS');
-  const tasksResponse = page.waitForResponse(
-    (response) => response.url().includes('/api/tasks') && response.status() === 200,
-    { timeout: 15000 }
-  );
-  await page.goto(`${baseUrl}/ops`, { waitUntil: 'networkidle' });
-  await page.waitForURL('**/ops');
-  await tasksResponse;
-  await page.getByRole('heading', { name: 'Tasking Ticket', exact: true }).waitFor({ timeout: 15000 });
-  await page.getByText(/TSK-\d+/).first().waitFor({ timeout: 30000 });
+  await page.getByRole('button', { name: 'Resume delivery', exact:true }).click();
+  await page.getByRole('heading', { name: 'Operations ticket issued' }).waitFor();
+  await pause(page, 1500);
+  await page.getByRole('button', { name: 'Try duplicate delivery', exact:true }).click();
+  await pause(page, 1500);
+  await page.getByText('History & technical evidence', { exact:true }).click();
+  await pause(page, 1500);
+  await page.getByRole('link', { name: 'Open audit evidence', exact:true }).click();
+  await page.getByRole('heading', { name: 'Mission history & evidence' }).waitFor();
   await pause(page, 2000);
-
-  await selectRole(page, 'AUDITOR');
-  const auditResponse = page.waitForResponse(
-    (response) => response.url().includes('/api/audit') && response.status() === 200,
-    { timeout: 15000 }
-  );
-  await page.goto(`${baseUrl}/audit`, { waitUntil: 'networkidle' });
-  await page.waitForURL('**/audit');
-  await auditResponse;
-  await page.getByRole('heading', { name: 'Audit Events', exact: true }).waitFor({ timeout: 15000 });
-  await page.getByText(/PLAN_|OPS_/).first().waitFor({ timeout: 15000 });
-  await pause(page, 2000);
-
-  await selectRole(page, 'EXEC');
-  const execResponses = Promise.all([
-    page.waitForResponse(
-      (response) => response.url().includes('/api/plans') && response.status() === 200,
-      { timeout: 15000 }
-    ),
-    page.waitForResponse(
-      (response) => response.url().includes('/api/tasks') && response.status() === 200,
-      { timeout: 15000 }
-    ),
-    page.waitForResponse(
-      (response) => response.url().includes('/api/audit') && response.status() === 200,
-      { timeout: 15000 }
-    ),
-  ]);
-  await page.goto(`${baseUrl}/executive`, { waitUntil: 'networkidle' });
-  await page.waitForURL('**/executive');
-  await execResponses;
-  await page.getByText('Mission readiness at a glance').waitFor({ timeout: 15000 });
-  await pause(page, 2400);
 
   await context.close();
   await browser.close();

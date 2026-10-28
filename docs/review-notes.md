@@ -64,3 +64,13 @@ MAVEN_USER_HOME=/tmp/groundops-maven JAVA_HOME=/tmp/groundops-jdk21 ./mvnw \
 The standard project command remains `./mvnw -q clean test`. The suite has seven tests: three planner unit cases, the original broker integration case, and three handoff/recovery integration cases. The controlled failure cases use spy-injected exceptions with real broker transactions; the Ops failure case calls TaskService directly, not the listener redelivery loop.
 
 The frontend runtime is pinned to Node 22 in package engines and the local Docker image, matching the existing Vercel project setting. SPA routing and noindex are unchanged. No CI workflow or hosting/account/access configuration was added. Browser verification covers recovery, duplicate replay, two queued missions draining together, role-denied timeline hiding, mission-scoped feedback, and existing constraints/routes/responsive checks. Java integration and browser simulation evidence remain distinct.
+
+# Compact guided workspace
+
+The follow-up redesign preserves the mission behavior and Java implementation while removing role/page matching from the browser's first minute. The initial example has a compact summary and optional full editor. Mission inputs and progress sit together on desktop; on mobile the active step comes first after saving. Approve, recover and duplicate replay are contextual actions beside their result. IDs, history and test evidence remain expandable.
+
+Navigation and evidence links select the appropriate **simulated** persona, including direct routes and browser history. Explicit role overrides remain available under technical controls and still trigger permission errors. Local Java mode supplies no persona orchestration; its authorization behavior is unchanged.
+
+Independent review caught return navigation reopening intake, browser Back retaining the wrong persona, lost keyboard focus after actions, and a narrow step label. These were fixed and covered by `scripts/verify-guided-workspace.mjs`: no role selection in the default flow, restored mission state, direct-route/Back/Forward behavior, focus continuity, optional permission denial, and 320/375/1440px layout. The existing constraint/recovery/audit suite remains in `scripts/verify-browser.mjs`.
+
+The separate `scripts/verify-local-mode.mjs` check runs against `VITE_DEMO_MODE=false`: explicit JWT personas persist across navigation, synthetic controls are absent, and no-token/service-outage feedback remains. This check aborts API requests deliberately; real backend evidence remains the unchanged seven-test JDK21/Artemis suite.

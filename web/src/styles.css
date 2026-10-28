@@ -52,3 +52,32 @@ section, main, header, .card { min-width: 0; }
 .skip-link:focus { top: 8px; }
 input, select, textarea { min-width: 0; max-width: 100%; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+@layer components {
+  .primary-action { @apply inline-flex items-center justify-center rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white; }
+  .secondary-action { @apply inline-flex items-center justify-center rounded-lg border border-ink/25 bg-white px-3 py-2 text-sm font-semibold; }
+  .field-label { @apply flex flex-col gap-1 text-sm font-medium; }
+  .field-label input, .field-label select, .field-label textarea { @apply w-full rounded-lg border border-cloud bg-white px-3 py-2 text-sm font-normal; }
+}
+.workspace-header { border-bottom: 1px solid rgb(var(--cloud)); padding-bottom: 12px; }
+.mode-label { border-left: 1px solid #cbd5e1; padding-left: 12px; font-size: 12px; color: #475569; }
+.workspace-nav { display:flex; flex-wrap:wrap; gap:4px; }
+.mission-workspace { display:grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items:start; gap:16px; }
+.mission-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin:20px 0; }
+.mission-steps li { display:flex; flex-direction:column; gap:8px; padding-top:8px; border-top:2px solid #cbd5e1; color:#64748b; font-size:12px; }
+.mission-steps li span { display:flex; width:24px; height:24px; border:1px solid #cbd5e1; border-radius:50%; align-items:center; justify-content:center; font-weight:600; }
+.mission-steps .current { border-color:#0369a1; color:#0f172a; }
+.mission-steps .current span { background:#0369a1; color:white; border-color:#0369a1; }
+.mission-steps .complete { border-color:#047857; color:#047857; }
+.next-action { background:#f1f5f9; padding:16px; border-radius:12px; border:1px solid #e2e8f0; }
+.next-action.waiting { background:#fffbeb; border-color:#fcd34d; }
+.next-action.delivered { background:#f0fdf4; border-color:#a7f3d0; }
+.ticket-receipt { display:grid; gap:4px; margin-top:12px; padding:12px; background:white; border:1px solid #a7f3d0; border-radius:8px; font-size:12px; }
+.ticket-receipt b { font-size:16px; }
+@media (max-width:767px) {
+  .mission-workspace { grid-template-columns:minmax(0,1fr); }
+  .empty-progress { display:none; }
+  .mission-workspace:not(.is-composing) .mission-progress { grid-row:1; }
+  .workspace-nav a { flex:1 1 calc(50% - 4px); text-align:center; }
+  .mission-steps { gap:6px; margin:16px 0; }
+}

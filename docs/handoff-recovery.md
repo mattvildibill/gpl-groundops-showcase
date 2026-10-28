@@ -4,12 +4,12 @@ This is a synthetic integration exercise, not an operational flight system. The 
 
 ## Two-minute browser demo
 
-1. As **PLANNER**, submit the prefilled coastal survey window. Review its time and priority.
-2. Leave **Delay Ops consumption on approval** checked and approve. The timeline shows **Approved · awaiting handoff**, with no operations ticket. Approval is not completion.
-3. Select **Resume Ops consumption**. The original approval yields one ticket, keeping the window and approval correlation ID.
-4. Expand **Inspect handoff evidence** and replay duplicate delivery. The same ticket remains. Open the audit evidence and choose **AUDITOR** to inspect the approval and task events. Draft creation has a separate request trace.
+1. Choose **Save mission** for the prefilled coastal survey window. Use **Edit mission details** to change it. Review its time and priority.
+2. Leave **Try a delivery delay** checked and choose **Approve mission**. The timeline shows **Approved · awaiting handoff**, with no operations ticket. Approval is not completion.
+3. Select **Resume delivery**. The original approval yields one ticket, keeping the window and approval correlation ID.
+4. Expand **History & technical evidence** and choose **Try duplicate delivery**. The same ticket remains. Open the audit evidence to inspect the approval and task events. Draft creation has a separate request trace.
 
-The delay checkbox and resume/replay buttons are browser scenario controls, not Java management endpoints. Unchecking the delay exercises the normal delivery path when the shared consumer is running; an already paused consumer must still be resumed. No broker health or network failure is inferred from browser data.
+The guided browser selects the demonstration persona for each route, including direct links and browser Back/Forward. Manual role overrides are under **How it works & technical controls**; local Java mode never changes roles automatically. The delay checkbox and resume/replay buttons are browser scenario controls, not Java management endpoints. Unchecking the delay exercises the normal delivery path when the shared consumer is running; an already paused consumer must still be resumed. No broker health or network failure is inferred from browser data.
 
 ## Why this mechanism
 

@@ -17,7 +17,7 @@ This is an independent conceptual Ground Product Line exercise, not an operation
 
 ## Mission handoff exercise
 
-Approve one coastal survey window while Ops consumption is delayed, inspect the pending state, then deliberately resume delivery. Replay a duplicate and inspect the same ticket and audit trace. [Demo, real Artemis test evidence, and local reproduction](docs/handoff-recovery.md).
+Start with the ready-to-try coastal survey: Save mission → Approve mission → Resume delivery → inspect the ticket. Controls and results stay in one workspace; no role matching is needed in the browser. Full inputs, manual role checks and audit evidence remain available in expandable details. [Demo, real Artemis test evidence, and local reproduction](docs/handoff-recovery.md).
 
 ## At a glance
 - **What it is:** Mission planning → approval → event-driven tasking → audit trail → executive summary.
