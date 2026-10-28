@@ -45,6 +45,11 @@ try {
  await role('AUDITOR');
  await page.getByText('Task issued for AURORA-7',{exact:true}).waitFor();
  assert.equal(await page.getByText('Draft created for AURORA-7',{exact:true}).count(),0);
+ await page.getByRole('textbox',{name:'Action',exact:true}).fill('ops_task_created');
+ await page.getByRole('textbox',{name:'Actor',exact:true}).fill('DEMO-PLANNER');
+ await page.getByRole('button',{name:'Apply Filters',exact:true}).click();
+ await page.getByText('Task issued for AURORA-7',{exact:true}).waitFor();
+ assert.equal(await page.getByText('Approved window for AURORA-7',{exact:true}).count(),0);
  await page.getByRole('button',{name:'Reset',exact:true}).click();
  await page.getByText('Draft created for AURORA-7',{exact:true}).waitFor();
  await page.screenshot({path:`${out}/audit-trail.png`,fullPage:true});

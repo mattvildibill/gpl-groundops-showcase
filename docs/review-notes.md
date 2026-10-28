@@ -33,7 +33,14 @@ MAVEN_USER_HOME=/tmp/gpl-maven JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./mv
   -Dmaven.compiler.release= -Dmaven.compiler.source=21 -Dmaven.compiler.target=21 -q test
 ```
 
-The repository still targets release 21. On a complete JDK 21 installation, use the standard `./mvnw test` command. Docker Compose configuration validation also passed. There is no current GitHub Actions workflow; history shows it was deliberately removed, and no workflow was restored during this review. No full screen-reader audit or backend dependency vulnerability scan was performed.
+A subsequent standard verification used a complete matching Debian JDK 21 extracted in temporary storage. `clean test` passed all four tests with **no compiler overrides**:
+
+```bash
+MAVEN_USER_HOME=/tmp/gpl-maven JAVA_HOME=/tmp/gpl-full-jdk21 ./mvnw \
+  -s /tmp/gpl-maven-settings.xml -Dmaven.repo.local=/tmp/gpl-maven/repository -q clean test
+```
+
+The repository still targets release 21. On a complete JDK 21 installation, use the standard `./mvnw test` command. Docker Compose configuration validation also passed. There is no current GitHub Actions workflow; commit `4d762733` deleted CI alongside its badge and the license, but supplies no rationale beyond its title. The earlier workflow ran standard Java21 tests and a frontend build. With no evidence explaining the deletion, this review did not silently restore it; standard JDK21 verification was performed locally instead. No full screen-reader audit or backend dependency vulnerability scan was performed.
 
 ## Remaining boundaries
 

@@ -26,6 +26,7 @@ function validate(p: Intake) {
     if (end <= start) errors.push('End time must be after start time.');
     else if (end - start < 1800000 || end - start > 21600000) errors.push('Window duration must be between 30 minutes and 6 hours.');
   }
+  if ((p.notes?.length ?? 0) > 500) errors.push('Notes must be 500 characters or fewer.');
   if (p.priority === 'CRITICAL' && (p.notes?.trim().length ?? 0) < 20) errors.push('Critical plans require notes of at least 20 characters.');
   if (errors.length) throw new ApiError(422, 'Plan constraints failed.', errors);
 }
@@ -51,9 +52,9 @@ export async function demoRequest<T>(path: string, init: RequestInit = {}): Prom
     plan.status = 'APPROVED'; plan.approvedAt = new Date().toISOString(); plan.approvedBy = 'demo-planner'; plan.correlationId = correlationId;
     audit('PLAN_APPROVED', `Approved window for ${plan.asset}`, correlationId, { planId: plan.id, simulatedEvent: 'PlanApproved.v1' });
     const task: Task = { id: crypto.randomUUID(), planId: plan.id, asset: plan.asset, windowStart: plan.startTime,
-      windowEnd: plan.endTime, priority: plan.priority, status: 'READY', createdBy: 'simulated-ops', createdAt: new Date().toISOString(), correlationId };
+      windowEnd: plan.endTime, priority: plan.priority, status: 'QUEUED', createdBy: 'demo-planner', createdAt: new Date().toISOString(), correlationId };
     tasks.unshift(task);
-    audit('TASK_CREATED', `Task issued for ${plan.asset}`, correlationId, { planId: plan.id, taskId: task.id, simulatedEvent: 'OpsTaskCreated.v1' });
+    audit('OPS_TASK_CREATED', `Task issued for ${plan.asset}`, correlationId, { planId: plan.id, taskId: task.id, simulatedEvent: 'OpsTaskCreated.v1' });
     data = plan;
   } else if (url.pathname === '/api/plans') {
     requireRole(['PLANNER', 'EXEC']); data = plans;
@@ -61,7 +62,14 @@ export async function demoRequest<T>(path: string, init: RequestInit = {}): Prom
     requireRole(['OPS', 'EXEC']); data = tasks;
   } else if (url.pathname === '/api/audit') {
     requireRole(['AUDITOR', 'EXEC']);
-    data = events.filter(e => ['correlationId', 'actor', 'action'].every(key => !url.searchParams.get(key) || e[key as 'action'] === url.searchParams.get(key)));
+    data = events.filter(e => {
+      const correlation = url.searchParams.get('correlationId');
+      return (!correlation || e.correlationId === correlation)
+        && (['actor', 'action'] as const).every(key => {
+          const value = url.searchParams.get(key);
+          return !value || e[key].toLowerCase() === value.toLowerCase();
+        });
+    });
   } else throw new ApiError(404, 'Unknown demo operation.');
   return { data: structuredClone(data) as T, correlationId };
 }
