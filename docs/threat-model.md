@@ -15,9 +15,11 @@ The Docker stack demonstrates REST/JMS boundaries on one developer machine. Publ
 
 Planner approval is serialized so concurrent requests cannot both approve the same draft. The plan becomes approved only after the approval and audit sends return successfully. A send failure leaves it draft so the user can retry. Creation similarly adds the plan to the store only after its audit send succeeds.
 
-This is **not an atomic transaction** across state and messages. A partial send or ambiguous broker acknowledgement can deliver an event before the HTTP operation fails; retry can publish it again with another correlation ID. Ops deduplicates tasks by plan ID within one process, but does not guarantee exactly-once events. Its current task index is updated before its outgoing sends: a failure there can leave a task without its corresponding audit record. Service restart also loses plans, task deduplication state and audit records.
+Each outgoing event/audit pair is committed in one local JMS transaction. A controlled failure on the second send rolls back both. Ops records the task and plan-ID deduplication only after the outgoing pair commits, allowing retry after a failed publication.
 
-These limits are intentional scope boundaries for a small demonstration, not guarantees hidden behind the UI. A durable system would need persisted state, a transactional outbox or equivalent delivery strategy, consumer idempotency, and recovery tests. None are claimed here.
+This is **not an atomic transaction across memory, incoming acknowledgement and outgoing messages**. The outgoing transaction is independent of the listener acknowledgement. An ambiguous commit or process failure after publication can still produce duplicate evidence. Service restart loses plans, tasks, deduplication and audit records. Reused plan IDs after a Planner restart can also collide with a still-running Ops index. Do not treat this as restart-safe delivery or exactly-once processing.
+
+The delayed-consumer scenario intentionally preserves the same running processes. A durable system would need durable mission/task identities and state, an outbox or equivalent delivery strategy, durable consumer idempotency and restart-recovery tests. None are claimed here. See [handoff test evidence](handoff-recovery.md).
 
 ## Out of scope
 

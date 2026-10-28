@@ -37,6 +37,15 @@ try {
  await page.getByRole('button',{name:'Submit Plan',exact:true}).click();
  await page.getByRole('button',{name:'Approve',exact:true}).click();
  await page.getByText('APPROVED',{exact:true}).waitFor();
+ const timeline = page.getByRole('region',{name:'Mission handoff timeline'});
+ await timeline.getByText('Approved · awaiting handoff',{exact:true}).waitFor();
+ await page.screenshot({path:`${out}/handoff-pending.png`,fullPage:true});
+ await timeline.getByRole('button',{name:'Resume Ops consumption',exact:true}).click();
+ await timeline.getByText('Recovered',{exact:true}).waitFor();
+ await timeline.getByText('Inspect handoff evidence',{exact:true}).click();
+ await timeline.getByRole('button',{name:'Replay duplicate delivery',exact:true}).click();
+ await timeline.getByRole('status').filter({hasText:'Duplicate delivery ignored'}).waitFor();
+ await page.screenshot({path:`${out}/handoff-recovered.png`,fullPage:true});
  await role('OPS'); await nav('Ops Tasking');
  await page.getByRole('link',{name:'Trace handoff'}).waitFor();
  await page.screenshot({path:`${out}/ops-tasking.png`,fullPage:true});
@@ -69,11 +78,28 @@ try {
  await page.screenshot({path:`${out}/mission-planner-mobile.png`,fullPage:true});
  await page.getByRole('button',{name:'Reset scenario',exact:true}).click();
  await page.getByText('No plans yet.',{exact:false}).waitFor();
+ // Shared consumer: two pending plans drain together; old mission feedback must not leak.
+ for (const asset of ['AURORA-7','BOREALIS-4']) {
+   await page.getByRole('textbox',{name:'Asset',exact:true}).fill(asset);
+   await page.getByRole('button',{name:'Submit Plan',exact:true}).click();
+   await page.getByRole('button',{name:'Approve',exact:true}).click();
+ }
+ await page.getByText('Browser scenario control · 2 queued approval(s).',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'Resume Ops consumption',exact:true}).click();
+ await page.getByRole('region',{name:'Mission handoff timeline'}).getByRole('combobox',{name:'Mission'}).selectOption({label:'AURORA-7 · PLN-1001'});
+ await page.getByRole('region',{name:'Mission handoff timeline'}).getByText('Recovered',{exact:true}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'Resume Ops consumption',exact:true}).count(),0);
+ await page.getByRole('region',{name:'Mission handoff timeline'}).getByText('Inspect handoff evidence',{exact:true}).click();
+ await page.getByRole('button',{name:'Replay duplicate delivery',exact:true}).click();
+ await page.getByRole('region',{name:'Mission handoff timeline'}).getByRole('combobox',{name:'Mission'}).selectOption({label:'BOREALIS-4 · PLN-1002'});
+ assert.equal(await page.getByText('Duplicate delivery ignored.',{exact:false}).count(),0);
+ await role('AUDITOR');
+ assert.equal(await page.getByRole('region',{name:'Mission handoff timeline'}).count(),0);
  await page.goto(`${base}/audit`); await page.getByRole('heading',{name:'Searchable operational history'}).waitFor();
  await page.keyboard.press('Tab');
  assert.equal(await page.locator(':focus').textContent(),'Skip to mission workspace');
  assert.deepEqual(errors,[]);
- console.log('PASS: past/reversed/short/long/out-of-horizon/critical constraint feedback; create → approve → task → trace; role denial/reload; audit reset; summary; reset scenario; direct route; keyboard skip link; 4 views × 4 widths; no page errors.');
+ console.log('PASS: past/reversed/short/long/out-of-horizon/critical constraint feedback; create → approve → pending → resume → ticket → duplicate replay → trace; role denial/reload; audit reset; summary; reset scenario; direct route; keyboard skip link; 4 views × 4 widths; no page errors.');
  console.log(`Screenshots: ${out}`);
 } catch(e) { await page.screenshot({path:`${out}/failure.png`,fullPage:true}); console.error(await page.locator('body').innerText()); throw e; }
 finally {await browser.close();}

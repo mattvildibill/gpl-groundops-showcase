@@ -14,10 +14,15 @@ public class EventPublisher {
   private static final Logger log = LoggerFactory.getLogger(EventPublisher.class);
   private final JmsTemplate jmsTemplate;
   private final Validator validator;
+  private final org.springframework.transaction.support.TransactionTemplate transaction;
 
   public EventPublisher(JmsTemplate jmsTemplate, Validator validator) {
     this.jmsTemplate = jmsTemplate;
     this.validator = validator;
+    this.transaction = new org.springframework.transaction.support.TransactionTemplate(
+        new org.springframework.jms.connection.JmsTransactionManager(jmsTemplate.getConnectionFactory()));
+    // Publish the pair in its own broker transaction, including when called by a listener.
+    this.transaction.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
   }
 
   public void publishOpsTaskCreated(OpsTaskCreatedEvent event, String correlationId, String actor) {
@@ -28,6 +33,13 @@ public class EventPublisher {
   public void publishAuditEvent(AuditEvent event, String correlationId, String actor) {
     validate(event);
     send(EventDestinations.AUDIT_EVENTS, event, correlationId, actor);
+  }
+
+  public void publishHandoff(OpsTaskCreatedEvent event, AuditEvent audit, String correlationId, String actor) {
+    transaction.executeWithoutResult(status -> {
+      publishOpsTaskCreated(event, correlationId, actor);
+      publishAuditEvent(audit, correlationId, actor);
+    });
   }
 
   private void send(String destination, Object payload, String correlationId, String actor) {

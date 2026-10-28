@@ -59,13 +59,11 @@ public class PlanService {
       )));
     }
 
-    // Keep the draft retryable if publishing fails. These two sends are not an
-    // atomic transaction: partial delivery is possible in this in-memory demo.
+    // Commit the event and its audit together before updating the in-memory plan.
     PlanApprovedEvent approvedEvent = PlanApprovedEvent.from(plan, actor, correlationId, clock.instant());
-    eventPublisher.publishPlanApproved(approvedEvent, correlationId, actor);
 
     AuditEvent auditEvent = AuditEvent.planApproved(plan, actor, correlationId, clock.instant());
-    eventPublisher.publishAuditEvent(auditEvent, correlationId, actor);
+    eventPublisher.publishHandoff(approvedEvent, auditEvent, correlationId, actor);
     plan.approve(actor, clock.instant(), correlationId);
 
     return plan;

@@ -17,6 +17,12 @@
   <dependencies>
     <dependency>
       <groupId>com.groundops</groupId>
+      <artifactId>planner-service</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.groundops</groupId>
       <artifactId>ops-service</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>

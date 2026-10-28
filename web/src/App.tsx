@@ -73,9 +73,11 @@ export default function App() {
             <p className="section-title">{DEMO_MODE ? 'Synthetic scenario / browser simulation' : 'Local demonstration / Java + JMS'}</p>
             {DEMO_MODE && <button className="text-sm underline underline-offset-4" onClick={() => { resetDemo(); storeAuth('PLANNER', 'browser-simulation'); window.location.assign('/'); }}>Reset scenario</button>}
           </div>
-          <p className="mt-2 text-sm max-w-3xl">A coastal imaging request needs an approved window before operations can issue a ticket. Follow one request across the service boundary and inspect the evidence it leaves behind.</p>
-          <p className="mt-2 text-xs text-ink/70">{DEMO_MODE ? 'Fictional assets and records, kept in memory until you refresh. Java services and the JMS broker are not running here. Role switching demonstrates permissions, not authentication.' : 'Run the Docker Compose stack to exercise REST, Java services and the JMS broker. Development tokens are not production authentication.'}</p>
-          <ol className="mt-4 grid gap-2 text-sm sm:grid-cols-3"><li><b>01 / Plan</b> a window as PLANNER</li><li><b>02 / Approve</b>, then inspect as OPS</li><li><b>03 / Trace</b> the handoff as AUDITOR</li></ol>
+          <p className="mt-2 text-sm">{DEMO_MODE ? 'Fictional coastal survey. Browser memory only; Java and Artemis run locally with Docker, not on this site.' : 'Local Java + Artemis stack. Fictional records and development tokens.'}</p>
+          <details className="mt-2 text-xs text-ink/70"><summary className="cursor-pointer">Implementation and evidence</summary>
+            <p className="mt-2">Plan → approve → wait for Ops → recover → inspect the ticket. The hosted controls simulate a paused consumer; they do not operate a live broker. Roles demonstrate permissions, not authentication.</p>
+            <a className="mt-2 inline-block underline" href="https://github.com/mattvildibill/gpl-groundops-showcase/blob/main/docs/handoff-recovery.md" target="_blank" rel="noreferrer">Java test evidence and local reproduction</a>
+          </details>
         </section>
         <nav aria-label="Mission workspace" className="flex flex-wrap items-center gap-3">
           {navItems.map((item) => (
