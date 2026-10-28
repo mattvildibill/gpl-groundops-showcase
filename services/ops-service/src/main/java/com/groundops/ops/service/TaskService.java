@@ -51,14 +51,14 @@ public class TaskService {
           clock.instant(),
           event.correlationId()
       );
-      tasks.put(taskId, task);
-      planIndex.put(event.planId(), taskId);
 
       OpsTaskCreatedEvent opsEvent = OpsTaskCreatedEvent.from(task, event.correlationId(), clock.instant());
-      eventPublisher.publishOpsTaskCreated(opsEvent, event.correlationId(), event.approvedBy());
 
       AuditEvent auditEvent = AuditEvent.taskCreated(task, event.approvedBy(), event.correlationId(), clock.instant());
-      eventPublisher.publishAuditEvent(auditEvent, event.correlationId(), event.approvedBy());
+      eventPublisher.publishHandoff(opsEvent, auditEvent, event.correlationId(), event.approvedBy());
+      // Failed publication must not poison deduplication and suppress a later retry.
+      tasks.put(taskId, task);
+      planIndex.put(event.planId(), taskId);
 
       return task;
     }

@@ -173,7 +173,7 @@ public class PlanApprovalIntegrationTest {
     throw new AssertionError("Condition not met within " + timeout);
   }
 
-  private static String mintToken(String role) throws Exception {
+  static String mintToken(String role) throws Exception {
     String headerJson = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
     long now = System.currentTimeMillis() / 1000;
     String payloadJson = "{\"iss\":\"groundops-test\",\"sub\":\"demo-" + role.toLowerCase()

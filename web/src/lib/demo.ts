@@ -6,10 +6,43 @@ type Intake = { asset: string; startTime: string; endTime: string; priority: Pla
 let plans: Plan[] = [];
 let tasks: Task[] = [];
 let events: AuditEvent[] = [];
-export function resetDemo() { plans = []; tasks = []; events = []; }
-function audit(action: string, summary: string, correlationId: string, details: Record<string, unknown>) {
+let consumptionPaused = false;
+let pending: string[] = [];
+let recovered = new Set<string>();
+export function resetDemo() { plans = []; tasks = []; events = []; pending = []; recovered = new Set(); consumptionPaused = false; }
+export function setHandoffDelay(value: boolean) { requireRole(['PLANNER']); if (value) consumptionPaused = true; }
+export function missionSnapshot() {
+  return structuredClone({ plans, tasks, pending, recovered: [...recovered] });
+}
+function deliver(plan: Plan) {
+  if (tasks.some(task => task.planId === plan.id)) return; // Process-local plan deduplication, as in Java.
+  const correlationId = plan.correlationId!;
+  const task: Task = { id: `TSK-${2001 + tasks.length}`, planId: plan.id, asset: plan.asset, windowStart: plan.startTime,
+    windowEnd: plan.endTime, priority: plan.priority, status: 'QUEUED', createdBy: plan.approvedBy!, createdAt: new Date().toISOString(), correlationId };
+  tasks.unshift(task);
+  audit('OPS_TASK_CREATED', `Task issued for ${plan.asset}`, correlationId, { planId: plan.id, taskId: task.id, simulatedEvent: 'OpsTaskCreated.v1' }, plan.approvedBy!);
+}
+export function resumeHandoff(planId: string) {
+  requireRole(['PLANNER', 'OPS']); // Scenario control, not a backend authorization capability.
+  const plan = plans.find(p => p.id === planId);
+  if (!plan || !pending.includes(planId)) throw new ApiError(409, 'No pending handoff for this mission.');
+  // One shared consumer drains all queued approvals when it resumes.
+  for (const id of pending) {
+    deliver(plans.find(p => p.id === id)!);
+    recovered.add(id);
+  }
+  pending = [];
+  consumptionPaused = false;
+}
+export function replayHandoff(planId: string) {
+  requireRole(['PLANNER', 'OPS']);
+  const plan = plans.find(p => p.id === planId);
+  if (!plan || !tasks.some(t => t.planId === planId)) throw new ApiError(409, 'Recover the handoff first.');
+  deliver(plan);
+}
+function audit(action: string, summary: string, correlationId: string, details: Record<string, unknown>, actor = `demo-${getStoredRole()?.toLowerCase()}`) {
   events.unshift({ eventId: crypto.randomUUID(), eventType: 'AuditEvent.v1', timestamp: new Date().toISOString(),
-    correlationId, actor: `demo-${getStoredRole()?.toLowerCase()}`, action, summary, details });
+    correlationId, actor, action, summary, details });
 }
 function requireRole(allowed: string[]) {
   if (!allowed.includes(getStoredRole() ?? '')) throw new ApiError(403, `This view requires ${allowed.join(' or ')}. Choose that role above.`);
@@ -38,7 +71,7 @@ export async function demoRequest<T>(path: string, init: RequestInit = {}): Prom
     requireRole(['PLANNER']);
     const intake = JSON.parse(String(init.body)) as Intake;
     validate(intake);
-    const plan: Plan = { ...intake, asset: intake.asset.trim(), id: crypto.randomUUID(), status: 'DRAFT',
+    const plan: Plan = { ...intake, asset: intake.asset.trim(), id: `PLN-${1001 + plans.length}`, status: 'DRAFT',
       createdBy: 'demo-planner', createdAt: new Date().toISOString(), correlationId };
     plans.unshift(plan);
     audit('PLAN_CREATED', `Draft created for ${plan.asset}`, correlationId, { planId: plan.id });
@@ -51,10 +84,8 @@ export async function demoRequest<T>(path: string, init: RequestInit = {}): Prom
     validate(plan);
     plan.status = 'APPROVED'; plan.approvedAt = new Date().toISOString(); plan.approvedBy = 'demo-planner'; plan.correlationId = correlationId;
     audit('PLAN_APPROVED', `Approved window for ${plan.asset}`, correlationId, { planId: plan.id, simulatedEvent: 'PlanApproved.v1' });
-    const task: Task = { id: crypto.randomUUID(), planId: plan.id, asset: plan.asset, windowStart: plan.startTime,
-      windowEnd: plan.endTime, priority: plan.priority, status: 'QUEUED', createdBy: 'demo-planner', createdAt: new Date().toISOString(), correlationId };
-    tasks.unshift(task);
-    audit('OPS_TASK_CREATED', `Task issued for ${plan.asset}`, correlationId, { planId: plan.id, taskId: task.id, simulatedEvent: 'OpsTaskCreated.v1' });
+    if (consumptionPaused) { pending.push(plan.id); }
+    else deliver(plan);
     data = plan;
   } else if (url.pathname === '/api/plans') {
     requireRole(['PLANNER', 'EXEC']); data = plans;

@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { Radar, Rows3 } from 'lucide-react';
+import { MissionTimeline } from '../components/MissionTimeline';
+import { getStoredRole } from '../lib/auth';
+import { DEMO_MODE } from '../lib/mode';
 import { Task, getTasks } from '../lib/api';
 import { CopyButton } from '../components/CopyButton';
 import { PageHeader } from '../components/PageHeader';
@@ -41,8 +44,9 @@ export default function OpsPage() {
         subtitle="Ops listens for PlanApproved events, issues tasking tickets, and publishes OpsTaskCreated."
       />
 
+      {DEMO_MODE && ['OPS', 'EXEC'].includes(getStoredRole() ?? '') && <MissionTimeline onRecovered={() => void loadTasks()} />}
       {error && <p role="alert" className="card p-4 text-warning">{error} Retrying every five seconds.</p>}
-      <p className="text-sm text-ink/70">One approved plan produces one ticket. This view checks for new tickets every five seconds.</p>
+      <p className="text-sm text-ink/70">Repeated delivery is deduplicated while Ops remains running. This view checks for new tickets every five seconds.</p>
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="card p-6">
           <div className="flex items-center justify-between">

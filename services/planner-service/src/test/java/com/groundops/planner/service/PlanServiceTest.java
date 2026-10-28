@@ -29,21 +29,18 @@ class PlanServiceTest {
   void failedPublicationLeavesDraftRetryable() {
     String id = draft();
     doThrow(new IllegalStateException("broker unavailable")).doNothing()
-        .when(publisher).publishPlanApproved(any(), anyString(), anyString());
+        .when(publisher).publishHandoff(any(), any(), anyString(), anyString());
     assertThrows(IllegalStateException.class, () -> service.approvePlan(id, "planner", "first"));
     assertEquals(PlanStatus.DRAFT, service.getPlan(id).getStatus());
     assertEquals(PlanStatus.APPROVED, service.approvePlan(id, "planner", "retry").getStatus());
   }
 
   @Test
-  void auditFailureDoesNotPermanentlyBlockApprovalRetry() {
+  void alreadyApprovedPlanCannotPublishAnotherHandoff() {
     String id = draft();
-    doThrow(new IllegalStateException("audit send failed")).doNothing()
-        .when(publisher).publishAuditEvent(any(), anyString(), anyString());
-    assertThrows(IllegalStateException.class, () -> service.approvePlan(id, "planner", "first"));
-    assertEquals(PlanStatus.DRAFT, service.getPlan(id).getStatus());
-    service.approvePlan(id, "planner", "retry");
-    assertEquals(PlanStatus.APPROVED, service.getPlan(id).getStatus());
+    service.approvePlan(id, "planner", "first");
+    assertThrows(PlanAlreadyApprovedException.class, () -> service.approvePlan(id, "planner", "again"));
+    verify(publisher, times(1)).publishHandoff(any(), any(), anyString(), anyString());
   }
 
   @Test
@@ -58,7 +55,7 @@ class PlanServiceTest {
           + (second.get(5, TimeUnit.SECONDS) ? 1 : 0);
       assertEquals(1, successes);
     }
-    verify(publisher, times(1)).publishPlanApproved(any(), anyString(), anyString());
+    verify(publisher, times(1)).publishHandoff(any(), any(), anyString(), anyString());
   }
 
   private boolean attemptApproval(String id, CountDownLatch start) throws InterruptedException {

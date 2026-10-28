@@ -5,7 +5,7 @@
 GroundOps is a compact mission-ops pipeline: plan a mission window, approve it, generate ops tasking via events, record an audit trail, and surface an executive summary. It’s intentionally small (3 services + broker + UI) but built to feel like real ground/mission operations software.
 
 ## Try it without infrastructure
-Requires Node.js 20 or newer.
+Requires Node.js 22.
 ```bash
 cd web
 npm ci
@@ -14,6 +14,10 @@ npm run dev
 The default UI is a **synthetic browser walkthrough**. It keeps data in memory until refresh and simulates the event handoff; it does not run Java, JMS, or real authentication. Use Docker below to run the actual Java implementation. [Mode boundaries and hosting notes](docs/hosted-demo.md).
 
 This is an independent conceptual Ground Product Line exercise, not an operational system or an employer/customer project. Example assets, scenarios and audit records are fictional.
+
+## Mission handoff exercise
+
+Approve one coastal survey window while Ops consumption is delayed, inspect the pending state, then deliberately resume delivery. Replay a duplicate and inspect the same ticket and audit trace. [Demo, real Artemis test evidence, and local reproduction](docs/handoff-recovery.md).
 
 ## At a glance
 - **What it is:** Mission planning → approval → event-driven tasking → audit trail → executive summary.
@@ -33,7 +37,7 @@ This is an independent conceptual Ground Product Line exercise, not an operation
 ## Where to start
 - Demo story: docs/demo-walkthrough.md
 - Architecture: docs/architecture.md
-- Tests: tests/integration-tests/ + `./mvnw test` (requires Docker; broker integration coverage is not a full HTTP end-to-end test)
+- Tests: tests/integration-tests/ + `./mvnw test` (requires Docker; includes HTTP planner approval, delayed consumer recovery, transaction rollback and duplicate handling against real Artemis)
 
 ## Screenshots
 These captures show the synthetic browser walkthrough, including a generated plan, task and audit trace. They are not evidence of a running Java backend.

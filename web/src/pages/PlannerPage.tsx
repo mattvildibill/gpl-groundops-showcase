@@ -4,6 +4,10 @@ import { ClipboardSignature, Orbit, Send } from 'lucide-react';
 import { ApiError, Plan, PlanPriority, createPlan, getPlans, approvePlan } from '../lib/api';
 import { CopyButton } from '../components/CopyButton';
 import { PageHeader } from '../components/PageHeader';
+import { getStoredRole } from '../lib/auth';
+import { DEMO_MODE } from '../lib/mode';
+import { MissionTimeline } from '../components/MissionTimeline';
+import { setHandoffDelay, missionSnapshot } from '../lib/demo';
 import { StatusBadge } from '../components/StatusBadge';
 
 const priorityOptions: PlanPriority[] = ['ROUTINE', 'PRIORITY', 'CRITICAL'];
@@ -17,6 +21,7 @@ export default function PlannerPage() {
   const [loadError, setLoadError] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [notice, setNotice] = useState('');
+  const [delay, setDelay] = useState(true);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [formState, setFormState] = useState({
@@ -81,8 +86,9 @@ export default function PlannerPage() {
     setErrors([]);
     setNotice('');
     try {
+      if (DEMO_MODE) setHandoffDelay(delay);
       const response = await approvePlan(planId);
-      setNotice('Plan approved. Open Ops Tasking to inspect the derived ticket.');
+      setNotice(DEMO_MODE && missionSnapshot().pending.includes(planId) ? 'Approval recorded. Handoff is waiting for Ops consumption.' : 'Plan approved. Check Ops Tasking for the derived ticket.');
       setLastCorrelation(response.correlationId);
       await loadPlans();
     } catch (err) {
@@ -103,6 +109,7 @@ export default function PlannerPage() {
         subtitle="Start within 14 days, reserve 30 minutes to six hours, and provide at least 20 characters of justification for critical priority."
       />
 
+      {DEMO_MODE && ['PLANNER', 'EXEC'].includes(getStoredRole() ?? '') && <MissionTimeline onRecovered={() => setNotice('Ops consumption resumed. Inspect the timeline for ticket evidence.')} />}
       <p className="text-sm text-ink/70">Times use your browser timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}. Stored timestamps are UTC.</p>
       {loadError && <p role="alert" className="card p-4 text-warning">{loadError} <button className="underline" onClick={() => loadPlans().catch((err) => setLoadError(err.message))}>Retry</button></p>}
       {notice && <p role="status" className="card p-4 text-success">{notice}</p>}
@@ -211,6 +218,10 @@ export default function PlannerPage() {
             <ClipboardSignature className="h-5 w-5 text-accent" />
           </div>
 
+          {DEMO_MODE && <label className="mt-4 flex items-start gap-2 text-sm">
+            <input type="checkbox" checked={delay} onChange={e => setDelay(e.target.checked)} className="mt-1" />
+            <span>Delay Ops consumption on approval <span className="block text-xs text-ink/60">Scenario control · recover the pending handoff above.</span></span>
+          </label>}
           <div className="mt-6 space-y-4">
             {!loaded ? <p role="status">Loading plans…</p> : loadError ? <p>Plan queue unavailable.</p> : plans.length === 0 ? (
               <div className="rounded-xl border border-dashed border-cloud/80 p-6 text-sm text-ink/60">
