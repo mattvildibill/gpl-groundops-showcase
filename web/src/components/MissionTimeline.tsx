@@ -1,65 +1,69 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { EvidenceLink } from './EvidenceLink';
 import { missionSnapshot, resumeHandoff, replayHandoff } from '../lib/demo';
 import { getStoredRole } from '../lib/auth';
 import { CopyButton } from './CopyButton';
 
-const time = (value: string) => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-export function MissionTimeline({ onRecovered }: { onRecovered?: () => void }) {
-  // Parent reads refresh the snapshot; scenario controls update it immediately.
-  const [, refresh] = useState(0);
-  const [feedback, setFeedback] = useState({ planId: '', text: '' });
+const time = (value: string) => new Date(value).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+type Props = { active?: boolean; selectedPlanId?: string; onSelect?: (id:string) => void; onApprove?: (id:string) => void; busy?: boolean; delay?: boolean; onDelayChange?: (value:boolean) => void; onRecovered?: () => void };
+export function MissionTimeline({active = true, selectedPlanId, onSelect, onApprove, busy, delay, onDelayChange, onRecovered}: Props) {
+  const [,refresh] = useState(0);
+  const [feedback,setFeedback] = useState({planId:'',text:''});
+  const [selection,setSelection] = useState('');
   const snapshot = missionSnapshot();
-  const [selected, setSelected] = useState('');
-  const plan = snapshot.plans.find(p => p.id === selected) ?? snapshot.plans[0];
+  const plan = snapshot.plans.find(p => p.id === (selectedPlanId ?? selection)) ?? snapshot.plans[0];
   const task = snapshot.tasks.find(t => t.planId === plan?.id);
-  const pending = plan && snapshot.pending.includes(plan.id);
-  const recovered = plan && snapshot.recovered.includes(plan.id);
-  const canControl = ['PLANNER', 'OPS'].includes(getStoredRole() ?? '');
-  const act = (replay: boolean) => {
+  const pending = !!plan && snapshot.pending.includes(plan.id);
+  const recovered = !!plan && snapshot.recovered.includes(plan.id);
+  const canControl = ['PLANNER','OPS'].includes(getStoredRole() ?? '');
+  const stage = !plan ? 0 : plan.status === 'DRAFT' ? 1 : pending ? 2 : 3;
+  const actionHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (active && stage > 0) actionHeading.current?.focus();
+  }, [stage, active]);
+  const titles = ['Start with a survey window','Ready for your approval','Approved · awaiting handoff','Operations ticket issued'];
+  const act = (replay:boolean) => {
     if (!plan) return;
     try {
       if (replay) replayHandoff(plan.id); else resumeHandoff(plan.id);
-      setFeedback({planId: plan.id, text: replay ? 'Duplicate delivery ignored. The same ticket and audit evidence remain.' : 'Consumption resumed. Queued approvals produced their operations tickets.'});
-      refresh(n => n + 1);
-      onRecovered?.();
-    } catch (error) { setFeedback({planId: plan.id, text: error instanceof Error ? error.message : 'Recovery failed.'}); }
+      setFeedback({planId:plan.id,text:replay ? 'Duplicate delivery ignored. The same ticket and audit evidence remain.' : 'Delivery resumed. Each waiting mission now has one ticket.'});
+      refresh(n=>n+1); onRecovered?.();
+    } catch(e) {setFeedback({planId:plan.id,text:e instanceof Error ? e.message : 'Recovery failed.'});}
   };
-  return <section className="mission-timeline card p-5 sm:p-6" aria-label="Mission handoff timeline">
-    <div className="flex flex-wrap justify-between items-start gap-3">
-      <div><p className="section-title">Coastal survey / handoff exercise</p>
-        <h2 className="mt-1 text-2xl font-semibold">{plan?.asset ?? 'One window. One operations ticket.'}</h2>
-        <p className="mt-2 text-sm text-ink/70">{plan ? `${new Date(plan.startTime).toLocaleString()} → ${new Date(plan.endTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} · ${plan.priority.toLowerCase()}` : 'Submit the mission below, then approve it with Ops consumption delayed.'}</p>
-      </div>
-      {snapshot.plans.length > 1 && <label className="text-sm">Mission <select className="ml-2 rounded border p-2" value={plan?.id} onChange={e => { setSelected(e.target.value); setFeedback({planId:'', text:''}); }}>{snapshot.plans.map(p => <option key={p.id} value={p.id}>{p.asset} · {p.id}</option>)}</select></label>}
+  return <section className="card p-4 sm:p-5" aria-label="Mission handoff timeline">
+    <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-lg font-semibold">Mission progress</h2><span className="text-xs text-ink/60">{plan ? plan.asset : 'Coastal survey example'}</span></div>
+    {snapshot.plans.length > 1 && <label className="mt-3 block text-sm">Mission <select className="ml-2 max-w-full rounded border p-2" value={plan?.id} onChange={e=>{setSelection(e.target.value);onSelect?.(e.target.value);setFeedback({planId:'',text:''});}}>{snapshot.plans.map(p=><option key={p.id} value={p.id}>{p.asset} · {p.id}</option>)}</select></label>}
+    <ol className="mission-steps" aria-label="Mission stages">{['Plan','Approve','Send','Ticket'].map((label,i)=><li key={label} aria-current={stage===i ? 'step' : undefined} className={i<stage || task ? 'complete' : stage===i ? 'current' : ''}><span>{i<stage || task ? '✓' : i+1}</span><b>{label}</b></li>)}</ol>
+    <div className={`next-action ${pending ? 'waiting' : task ? 'delivered' : ''}`}>
+      <p className="text-xs font-semibold uppercase tracking-wider text-ink/60">{task ? 'Result' : 'Next action'}</p>
+      <h3 ref={actionHeading} tabIndex={-1} className="mt-1 text-xl font-semibold">{titles[stage]}</h3>
+      {!plan && <p className="mt-2 text-sm text-ink/70">Save the example mission to begin. A mission is a request to reserve time for a satellite survey.</p>}
+      {plan?.status === 'DRAFT' && <>
+        <p className="mt-2 text-sm text-ink/70">Approval gives operations permission to prepare a work ticket. It does not mean the survey has happened.</p>
+        {onApprove && <>
+          <label className="mt-4 flex items-start gap-2 text-sm"><input type="checkbox" checked={delay} onChange={e=>onDelayChange?.(e.target.checked)} className="mt-1" /><span>Try a delivery delay<span className="block mt-1 text-xs text-ink/60">Pause the simulated receiving service. Recover it in the next step.</span></span></label>
+          <button className="primary-action mt-4" disabled={busy} onClick={()=>onApprove(plan.id)}>{busy ? 'Approving…' : 'Approve mission'}</button>
+        </>}
+      </>}
+      {pending && <>
+        <p className="mt-2 text-sm text-ink/70">The mission is approved, but the receiving service is paused. No ticket exists yet. Resume delivery; you do not need to approve again.</p>
+        {canControl && <button className="primary-action mt-4" onClick={()=>act(false)}>Resume delivery</button>}
+        <p className="mt-2 text-xs text-ink/60">Browser scenario control · {snapshot.pending.length} queued approval(s).</p>
+      </>}
+      {task && <>
+        <p className="mt-2 text-sm text-ink/70">Operations received the approved window and created a work ticket. The handoff is complete; the survey itself is not simulated.</p>
+        <div className="ticket-receipt"><b>{task.id}</b><span>{recovered ? 'Recovered' : 'Delivered'} · {time(task.createdAt)}</span><span>{new Date(task.windowStart).toLocaleString()} → {new Date(task.windowEnd).toLocaleString()}</span></div>
+        {canControl && <button className="secondary-action mt-3" onClick={()=>act(true)}>Try duplicate delivery</button>}
+        <p className="mt-2 text-xs text-ink/60">Send the same approval again. It should reuse this ticket.</p>
+      </>}
     </div>
-    <ol className="mt-6 grid gap-3 sm:grid-cols-4">
-      {[
-        ['01', 'Planned', plan ? time(plan.createdAt) : 'Awaiting intake', !!plan],
-        ['02', 'Approved', plan?.approvedAt ? time(plan.approvedAt) : 'Review window', !!plan?.approvedAt],
-        ['03', 'Ops handoff', pending ? 'Awaiting consumption' : task ? recovered ? 'Recovered' : 'Delivered' : 'Approval required', !!task],
-        ['04', 'Operations ticket', task ? `${task.id} · ${time(task.createdAt)}` : 'Not issued', !!task],
-      ].map(([step, label, detail, complete]) => <li key={String(step)} className={`rounded-xl border p-3 ${complete ? 'border-accent/40 bg-accent/5' : 'border-cloud/70'}`}>
-        <span className="text-xs font-mono text-ink/60">{step}</span><h3 className="mt-2 font-semibold text-sm">{label}</h3><p className="mt-1 text-xs text-ink/70">{detail}</p>
-      </li>)}
-    </ol>
-    {pending && <div className="mt-4 rounded-xl border border-warning/40 bg-warning/5 p-4">
-      <p className="font-semibold text-sm">Approved · awaiting handoff</p>
-      <p className="mt-1 text-sm text-ink/70">Ops consumption is paused in this exercise. The approval is queued; no ticket has been issued. Resume the shared consumer to retry all queued approvals without approving again.</p>
-      {canControl && <button className="mt-3 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-surface" onClick={() => act(false)}>Resume Ops consumption</button>}
-      <p className="mt-2 text-xs text-ink/60">Browser scenario control · {snapshot.pending.length} queued approval(s).</p>
-    </div>}
-    {feedback.planId === plan?.id && feedback.text && <p role="status" className="mt-3 text-sm">{feedback.text}</p>}
-    {plan && <details className="mt-4 text-sm">
-      <summary className="cursor-pointer underline underline-offset-4">Inspect handoff evidence</summary>
-      <div className="mt-3 space-y-3 text-ink/70">
-        <p>Plan {plan.id}{task ? ` → ticket ${task.id}` : ' → no ticket yet'}. Approval and task share a correlation ID; draft creation has its own request trace.</p>
-        <p className="break-all font-mono text-xs">{plan.correlationId}</p>
-        <div className="flex flex-wrap gap-3 items-center"><CopyButton text={plan.correlationId ?? ''} label="Copy mission trace" /><Link className="underline" to={`/audit?correlationId=${encodeURIComponent(plan.correlationId ?? '')}`}>Open audit evidence</Link>
-          {task && canControl && <button className="rounded-full border border-ink/30 px-3 py-2" onClick={() => act(true)}>Replay duplicate delivery</button>}</div>
-        <p className="text-xs">Cross-service scenario evidence, independent of Java API read permissions. Java tests use real Artemis to verify delayed consumption, retry after failed publication, and duplicate suppression. Records and deduplication are in memory; restart recovery and exactly-once delivery are not claimed.</p>
-      </div>
+    {feedback.planId===plan?.id && feedback.text && <p role="status" className="mt-3 text-sm">{feedback.text}</p>}
+    {plan && <details className="mt-4 text-sm"><summary className="cursor-pointer underline underline-offset-4">History & technical evidence</summary>
+      <ol className="mt-3 space-y-2 text-sm"><li>{time(plan.createdAt)} · Mission saved</li>{plan.approvedAt && <li>{time(plan.approvedAt)} · Window approved</li>}{task && <li>{time(task.createdAt)} · Ticket {task.id} created</li>}</ol>
+      <p className="mt-3 text-xs text-ink/70">Plan {plan.id}. Approval and ticket share this trace ID; draft creation is a separate request.</p>
+      <p className="mt-2 break-all font-mono text-xs">{plan.correlationId}</p>
+      <div className="mt-2 flex flex-wrap gap-3 items-center"><CopyButton text={plan.correlationId ?? ''} label="Copy mission trace" /><EvidenceLink trace={plan.correlationId}>Open audit evidence</EvidenceLink></div>
+      <p className="mt-3 text-xs text-ink/70">Cross-service browser evidence, independent of Java API permissions. Real Artemis tests verify paused consumption, failed-publication retry and duplicate suppression. State and deduplication are in memory; restart recovery and exactly-once delivery are not claimed.</p>
     </details>}
   </section>;
 }

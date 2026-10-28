@@ -43,23 +43,23 @@ export default function AuditTrailPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <PageHeader
         eyebrow="Audit Trail"
-        title="Searchable operational history"
-        subtitle="Audit-service records append-only events with actor, action, and correlation identifiers."
+        title="Mission history & evidence"
+        subtitle="See what happened, when, and which actions belong to the same request."
       />
 
       {error && <p role="alert" className="card p-4 text-warning">{error}</p>}
-      <section className="card p-6">
+      <section className="card p-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="section-title">Filters</div>
-            <h2 className="text-xl font-semibold">Event Query</h2>
+            <h2 className="text-xl font-semibold">Filter history</h2>
           </div>
           <Filter className="h-5 w-5 text-accent" />
         </div>
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
           <label className="space-y-2 text-sm">
             <span className="data-label">Correlation ID</span>
             <input
@@ -104,7 +104,7 @@ export default function AuditTrailPage() {
         </div>
       </section>
 
-      <section className="card p-6">
+      <section className="card p-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="section-title">Timeline</div>
@@ -112,7 +112,7 @@ export default function AuditTrailPage() {
           </div>
           <History className="h-5 w-5 text-accent" />
         </div>
-        <div className="mt-6 space-y-4">
+        <div className="mt-4 space-y-4">
           {loading ? <p role="status">Loading audit events…</p> : error ? <p>Audit history unavailable. Retry with Apply Filters.</p> : events.length === 0 ? (
             <div className="rounded-xl border border-dashed border-cloud/80 p-6 text-sm text-ink/60">
               No audit events match this filter.
@@ -129,9 +129,7 @@ export default function AuditTrailPage() {
                   </div>
                   <CopyButton text={event.correlationId} label="Copy correlation" />
                 </div>
-                <div className="mt-3 text-xs text-ink/60">
-                  Event ID: {event.eventId}
-                </div>
+                <details className="mt-2 text-xs text-ink/60"><summary className="cursor-pointer">Event reference</summary><p className="mt-2">{event.eventId}</p></details>
               </div>
             ))
           )}

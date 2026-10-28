@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { createToken, getStoredRole, getStoredToken, Role, storeAuth } from './lib/auth';
+import { DemoRoleContext } from './components/DemoRoleContext';
 import PlannerPage from './pages/PlannerPage';
 import OpsPage from './pages/OpsPage';
 import ExecutiveSummaryPage from './pages/ExecutiveSummaryPage';
@@ -11,19 +12,24 @@ import clsx from 'clsx';
 import { DEMO_MODE, resetDemo } from './lib/api';
 
 const navItems = [
-  { label: 'Mission Planner', path: '/' },
-  { label: 'Ops Tasking', path: '/ops' },
-  { label: 'Executive Summary', path: '/executive' },
-  { label: 'Audit Trail', path: '/audit' },
+  { label: 'Mission workspace', path: '/', role: 'PLANNER' as Role },
+  { label: 'Operations tickets', path: '/ops', role: 'OPS' as Role },
+  { label: 'Overview', path: '/executive', role: 'EXEC' as Role },
+  { label: 'History & evidence', path: '/audit', role: 'AUDITOR' as Role },
 ];
 
 export default function App() {
-  const [role, setRole] = useState<Role | null>(getStoredRole());
+  const location = useLocation();
+  const [role, setRole] = useState<Role | null>(() => {
+    if (!DEMO_MODE) return getStoredRole();
+    const initial = navItems.find(item => item.path === window.location.pathname)?.role ?? 'PLANNER';
+    storeAuth(initial, 'browser-simulation');
+    return initial;
+  });
   const [tokenReady, setTokenReady] = useState(Boolean(getStoredToken()));
   const [isMinting, setIsMinting] = useState(false);
   const [authError, setAuthError] = useState('');
-  const location = useLocation();
-  const activeLabel = navItems.find((item) => item.path === location.pathname)?.label ?? 'Mission Planner';
+
 
   useEffect(() => {
     if (!role) {
@@ -33,6 +39,7 @@ export default function App() {
   }, [role]);
 
   const handleRoleSelect = async (selected: Role) => {
+    if (DEMO_MODE) { storeAuth(selected, 'browser-simulation'); setRole(selected); setTokenReady(true); return; }
     setIsMinting(true);
     setAuthError('');
     try {
@@ -44,50 +51,42 @@ export default function App() {
     finally { setIsMinting(false); }
   };
 
-  return (
-    <div className="min-h-screen px-4 py-6 lg:px-10">
-      <a href="#main-content" className="skip-link">Skip to mission workspace</a>
-      <div className="mx-auto max-w-6xl space-y-6">
-        <header className="card flex flex-col gap-6 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-ink text-surface shadow-soft">
-              <CloudCog className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="text-sm uppercase tracking-[0.3em] text-ink/50">GroundOps GPL</div>
-              <div className="text-2xl font-semibold">Mission Operations Console</div>
-              <div className="text-xs text-ink/60">{DEMO_MODE ? 'Interactive mission-ops study' : 'Local service mode • development roles'}</div>
-            </div>
-          </div>
-          <div className="flex flex-col gap-3 lg:items-end">
-            <RoleSwitcher role={role} onSelect={handleRoleSelect} isLoading={isMinting} />
-            <div className={clsx('text-xs', tokenReady ? 'text-success' : 'text-warning')}>
-              {DEMO_MODE ? 'Role permissions simulated in this browser' : tokenReady ? 'Local development token ready' : 'Select a role to connect'}
-            </div>
-          </div>
-        </header>
+  // Route entry includes browser history and direct links. Manual overrides on
+  // the current route remain available; local Java mode never changes persona.
+  useLayoutEffect(() => {
+    if (DEMO_MODE) {
+      const routeRole = navItems.find(item => item.path === location.pathname)?.role;
+      if (routeRole) { storeAuth(routeRole, 'browser-simulation'); setRole(routeRole); }
+    }
+  }, [location.pathname]);
 
-        {authError && <p role="alert" className="text-warning">{authError}</p>}
-        <section className="briefing" aria-label="About this showcase">
+  return (
+    <div className="min-h-screen px-4 py-4 lg:px-8">
+      <a href="#main-content" className="skip-link">Skip to mission workspace</a>
+      <div className="mx-auto max-w-6xl space-y-4">
+        <header className="workspace-header">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="section-title">{DEMO_MODE ? 'Synthetic scenario / browser simulation' : 'Local demonstration / Java + JMS'}</p>
-            {DEMO_MODE && <button className="text-sm underline underline-offset-4" onClick={() => { resetDemo(); storeAuth('PLANNER', 'browser-simulation'); window.location.assign('/'); }}>Reset scenario</button>}
+            <div className="flex items-center gap-3"><CloudCog className="h-6 w-6 text-accentStrong" /><span className="text-xl font-semibold">GroundOps</span><span className="mode-label">{DEMO_MODE ? 'Browser simulation' : 'Local Java + JMS'}</span></div>
+            <div className="flex items-center gap-4 text-xs text-ink/70">{DEMO_MODE && <button className="underline" onClick={() => { resetDemo(); storeAuth('PLANNER', 'browser-simulation'); window.location.assign('/'); }}>Reset scenario</button>}</div>
           </div>
-          <p className="mt-2 text-sm">{DEMO_MODE ? 'Fictional coastal survey. Browser memory only; Java and Artemis run locally with Docker, not on this site.' : 'Local Java + Artemis stack. Fictional records and development tokens.'}</p>
-          <details className="mt-2 text-xs text-ink/70"><summary className="cursor-pointer">Implementation and evidence</summary>
-            <p className="mt-2">Plan → approve → wait for Ops → recover → inspect the ticket. The hosted controls simulate a paused consumer; they do not operate a live broker. Roles demonstrate permissions, not authentication.</p>
-            <a className="mt-2 inline-block underline" href="https://github.com/mattvildibill/gpl-groundops-showcase/blob/main/docs/handoff-recovery.md" target="_blank" rel="noreferrer">Java test evidence and local reproduction</a>
+          <details className="mt-2 text-sm text-ink/70"><summary className="cursor-pointer w-fit">How it works & technical controls</summary>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div><p>{DEMO_MODE ? 'A fictional satellite imaging request, simulated in browser memory. Java services and Artemis run locally with Docker, not here. Refresh clears the exercise.' : 'The local Docker stack runs Java services and Artemis. Fictional data and development tokens only.'}</p><a className="mt-2 inline-block underline" href="https://github.com/mattvildibill/gpl-groundops-showcase/blob/main/docs/handoff-recovery.md" target="_blank" rel="noreferrer">Architecture, Java tests & local reproduction</a></div>
+              <div><p className="mb-2 text-xs font-semibold">Explore service permissions (technical)</p><RoleSwitcher role={role} onSelect={handleRoleSelect} isLoading={isMinting} /><p className="mt-2 text-xs">{DEMO_MODE ? 'Navigation selects the matching demo role. Override it here to explore permission checks; this is not authentication.' : tokenReady ? 'Local development token ready.' : 'Select a role to connect.'}</p></div>
+            </div>
           </details>
-        </section>
-        <nav aria-label="Mission workspace" className="flex flex-wrap items-center gap-3">
+        </header>
+        {authError && <p role="alert" className="text-warning">{authError}</p>}
+        <nav aria-label="Mission workspace" className="workspace-nav">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={() => { if (DEMO_MODE) void handleRoleSelect(item.role); }}
               end={item.path === '/'}
               className={({ isActive }) =>
                 clsx(
-                  'rounded-full px-4 py-2 text-sm font-semibold transition',
+                  'rounded-lg px-3 py-2 text-sm font-semibold transition',
                   isActive
                     ? 'bg-ink text-surface shadow-soft'
                     : 'bg-surface/70 text-ink/70 hover:bg-surface'
@@ -97,12 +96,10 @@ export default function App() {
               {item.label}
             </NavLink>
           ))}
-          <div className="ml-auto hidden text-xs text-ink/50 lg:block">
-            Active view: {activeLabel}
-          </div>
         </nav>
 
         <main id="main-content" className="pb-10" tabIndex={-1}>
+          <DemoRoleContext.Provider value={DEMO_MODE ? handleRoleSelect : null}>
           <Routes key={role}>
             <Route path="/" element={<PlannerPage />} />
             <Route path="/ops" element={<OpsPage />} />
@@ -110,6 +107,7 @@ export default function App() {
             <Route path="/audit" element={<AuditTrailPage />} />
           <Route path="*" element={<p className="card p-6">View not found. Choose a workspace above.</p>} />
           </Routes>
+          </DemoRoleContext.Provider>
         </main>
       </div>
     </div>
