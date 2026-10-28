@@ -12,17 +12,18 @@ const roles: Role[] = ['PLANNER', 'OPS', 'EXEC', 'AUDITOR'];
 
 export function RoleSwitcher({ role, onSelect, isLoading }: RoleSwitcherProps) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3">
       <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-ink/50">
         <ShieldCheck className="h-4 w-4 text-accent" />
         Demo Role
       </div>
-      <div className="flex items-center gap-2 rounded-full bg-surface/80 p-1 shadow-soft">
+      <div className="flex flex-wrap items-center gap-1 rounded-xl bg-surface/80 p-1 shadow-soft">
         {roles.map((item) => (
           <button
             key={item}
             onClick={() => onSelect(item)}
             disabled={isLoading}
+            aria-pressed={role === item}
             className={clsx(
               'rounded-full px-3 py-1 text-xs font-semibold transition',
               role === item

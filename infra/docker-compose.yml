@@ -8,8 +8,8 @@ services:
       ARTEMIS_REQUIRE_LOGIN: "true"
       ANONYMOUS_LOGIN: "false"
     ports:
-      - "61616:61616"
-      - "8161:8161"
+      - "127.0.0.1:61616:61616"
+      - "127.0.0.1:8161:8161"
 
   planner-service:
     build:
@@ -23,7 +23,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-local-dev-secret-32-bytes-minimum!}
       SERVER_PORT: 8080
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     depends_on:
       - broker
 
@@ -39,7 +39,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-local-dev-secret-32-bytes-minimum!}
       SERVER_PORT: 8081
     ports:
-      - "8081:8081"
+      - "127.0.0.1:8081:8081"
     depends_on:
       - broker
 
@@ -55,7 +55,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-local-dev-secret-32-bytes-minimum!}
       SERVER_PORT: 8082
     ports:
-      - "8082:8082"
+      - "127.0.0.1:8082:8082"
     depends_on:
       - broker
 
@@ -65,12 +65,13 @@ services:
       dockerfile: web/Dockerfile
     container_name: groundops-web
     environment:
+      VITE_DEMO_MODE: "false"
       VITE_PLANNER_URL: http://localhost:8080
       VITE_OPS_URL: http://localhost:8081
       VITE_AUDIT_URL: http://localhost:8082
       VITE_JWT_SECRET: ${JWT_SECRET:-local-dev-secret-32-bytes-minimum!}
     ports:
-      - "5173:5173"
+      - "127.0.0.1:5173:5173"
     depends_on:
       - planner-service
       - ops-service

@@ -9,25 +9,32 @@ interface CopyButtonProps {
 
 export function CopyButton({ text, label = 'Copy' }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const handleCopy = async () => {
     if (!text) return;
+    try {
     await navigator.clipboard.writeText(text);
+    setFailed(false);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+    } catch { setFailed(true); }
   };
 
   return (
     <button
       type="button"
       onClick={handleCopy}
+      disabled={!text}
+      title={text || undefined}
+      aria-live="polite"
       className={clsx(
         'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold transition',
         copied ? 'border-success/50 bg-success/10 text-success' : 'border-cloud/70 bg-surface text-ink/70 hover:text-ink'
       )}
     >
       {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-      {copied ? 'Copied' : label}
+      {copied ? 'Copied' : failed ? `Copy unavailable: ${text}` : label}
     </button>
   );
 }

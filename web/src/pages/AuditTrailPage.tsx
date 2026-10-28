@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Filter, History } from 'lucide-react';
 import { AuditEvent, getAuditEvents } from '../lib/api';
@@ -5,20 +6,30 @@ import { CopyButton } from '../components/CopyButton';
 import { PageHeader } from '../components/PageHeader';
 
 export default function AuditTrailPage() {
+  const [params] = useSearchParams();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [filters, setFilters] = useState({
-    correlationId: '',
+    correlationId: params.get('correlationId') ?? '',
     actor: '',
     action: '',
   });
 
   const loadEvents = async (override?: typeof filters) => {
-    const response = await getAuditEvents({
-      correlationId: override?.correlationId || filters.correlationId || undefined,
-      actor: override?.actor || filters.actor || undefined,
-      action: override?.action || filters.action || undefined,
-    });
-    setEvents(response.data);
+    setLoading(true);
+    setError('');
+    try {
+      const active = override ?? filters;
+      const response = await getAuditEvents({
+        correlationId: active.correlationId.trim() || undefined,
+        actor: active.actor.trim() || undefined,
+        action: active.action.trim() || undefined,
+      });
+      setEvents(response.data);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load audit events.'); }
+    finally { setLoading(false); }
+
   };
 
   useEffect(() => {
@@ -39,6 +50,7 @@ export default function AuditTrailPage() {
         subtitle="Audit-service records append-only events with actor, action, and correlation identifiers."
       />
 
+      {error && <p role="alert" className="card p-4 text-warning">{error}</p>}
       <section className="card p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -77,9 +89,10 @@ export default function AuditTrailPage() {
           <button
             type="button"
             onClick={() => loadEvents().catch(console.error)}
+            disabled={loading}
             className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-surface"
           >
-            Apply Filters
+            {loading ? 'Loading…' : 'Apply Filters'}
           </button>
           <button
             type="button"
@@ -100,7 +113,7 @@ export default function AuditTrailPage() {
           <History className="h-5 w-5 text-accent" />
         </div>
         <div className="mt-6 space-y-4">
-          {events.length === 0 ? (
+          {loading ? <p role="status">Loading audit events…</p> : error ? <p>Audit history unavailable. Retry with Apply Filters.</p> : events.length === 0 ? (
             <div className="rounded-xl border border-dashed border-cloud/80 p-6 text-sm text-ink/60">
               No audit events match this filter.
             </div>

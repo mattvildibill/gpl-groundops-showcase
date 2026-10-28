@@ -62,20 +62,21 @@ public class PlanApprovalIntegrationTest {
           "--spring.artemis.broker-url=" + brokerUrl,
           "--spring.artemis.user=admin",
           "--spring.artemis.password=admin",
-          "--app.jwt.secret=local-dev-secret");
+          "--app.jwt.secret=local-dev-secret-32-bytes-minimum!");
 
       auditContext = SpringApplication.run(AuditServiceApplication.class,
           "--server.port=0",
           "--spring.artemis.broker-url=" + brokerUrl,
           "--spring.artemis.user=admin",
           "--spring.artemis.password=admin",
-          "--app.jwt.secret=local-dev-secret");
+          "--app.jwt.secret=local-dev-secret-32-bytes-minimum!");
 
       int opsPort = ((WebServerApplicationContext) opsContext).getWebServer().getPort();
       int auditPort = ((WebServerApplicationContext) auditContext).getWebServer().getPort();
 
       JmsTemplate jmsTemplate = new JmsTemplate(new ActiveMQConnectionFactory(brokerUrl, "admin", "admin"));
       MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
+      converter.setObjectMapper(new ObjectMapper().findAndRegisterModules());
       converter.setTargetType(MessageType.TEXT);
       converter.setTypeIdPropertyName("_type");
       converter.setTypeIdMappings(Map.of(PlanApprovedEvent.TYPE, PlanApprovedEvent.class));
@@ -175,7 +176,7 @@ public class PlanApprovalIntegrationTest {
     String unsignedToken = header + "." + payload;
 
     Mac mac = Mac.getInstance("HmacSHA256");
-    mac.init(new SecretKeySpec("local-dev-secret".getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+    mac.init(new SecretKeySpec("local-dev-secret-32-bytes-minimum!".getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
     String signature = base64Url(mac.doFinal(unsignedToken.getBytes(StandardCharsets.UTF_8)));
 
     return unsignedToken + "." + signature;

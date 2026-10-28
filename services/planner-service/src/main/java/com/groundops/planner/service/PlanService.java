@@ -37,15 +37,14 @@ public class PlanService {
     String id = "PLN-%04d".formatted(sequence.incrementAndGet());
     Plan plan = new Plan(id, request.asset(), request.startTime(), request.endTime(), request.priority(),
         request.notes(), actor, clock.instant(), correlationId);
-    plans.put(id, plan);
-
     AuditEvent auditEvent = AuditEvent.planCreated(plan, actor, correlationId, clock.instant());
     eventPublisher.publishAuditEvent(auditEvent, correlationId, actor);
+    plans.put(id, plan);
 
     return plan;
   }
 
-  public Plan approvePlan(String planId, String actor, String correlationId) {
+  public synchronized Plan approvePlan(String planId, String actor, String correlationId) {
     Plan plan = plans.get(planId);
     if (plan == null) {
       throw new PlanNotFoundException(planId);
@@ -60,13 +59,14 @@ public class PlanService {
       )));
     }
 
-    plan.approve(actor, clock.instant(), correlationId);
-
+    // Keep the draft retryable if publishing fails. These two sends are not an
+    // atomic transaction: partial delivery is possible in this in-memory demo.
     PlanApprovedEvent approvedEvent = PlanApprovedEvent.from(plan, actor, correlationId, clock.instant());
     eventPublisher.publishPlanApproved(approvedEvent, correlationId, actor);
 
     AuditEvent auditEvent = AuditEvent.planApproved(plan, actor, correlationId, clock.instant());
     eventPublisher.publishAuditEvent(auditEvent, correlationId, actor);
+    plan.approve(actor, clock.instant(), correlationId);
 
     return plan;
   }
