@@ -8,8 +8,8 @@
   --muted: 241 245 249;
   --accent: 14 165 233;
   --accent-strong: 3 105 161;
-  --warning: 245 158 11;
-  --success: 16 185 129;
+  --warning: 146 64 14;
+  --success: 4 120 87;
   --cloud: 226 232 240;
 }
 
@@ -36,6 +36,19 @@ body {
   }
 
   .data-label {
-    @apply text-xs uppercase tracking-[0.2em] text-ink/50;
+    @apply text-xs uppercase tracking-[0.2em] text-ink/70;
   }
 }
+
+* { box-sizing: border-box; }
+button, input, select, textarea, a { touch-action: manipulation; }
+button { min-height: 36px; }
+button:disabled { opacity: .55; cursor: not-allowed; }
+:focus-visible { outline: 3px solid #0369a1; outline-offset: 3px; }
+section, main, header, .card { min-width: 0; }
+.card { overflow-wrap: anywhere; }
+.briefing { border-left: 3px solid #0369a1; padding: 1rem 1.25rem; background: #eaf2f6; border-radius: 0 12px 12px 0; }
+.skip-link { position: absolute; top: -100px; left: 16px; z-index: 20; padding: 12px; background: white; }
+.skip-link:focus { top: 8px; }
+input, select, textarea { min-width: 0; max-width: 100%; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }

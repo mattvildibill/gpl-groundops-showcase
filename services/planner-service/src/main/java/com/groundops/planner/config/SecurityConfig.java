@@ -1,5 +1,6 @@
 package com.groundops.planner.config;
 
+import org.springframework.http.HttpMethod;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +23,8 @@ public class SecurityConfig {
     http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
     http.authorizeHttpRequests(auth -> auth
         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-        .requestMatchers("/api/**").hasAnyRole("PLANNER", "EXEC")
+        .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("PLANNER", "EXEC")
+        .requestMatchers("/api/**").hasRole("PLANNER")
         .anyRequest().authenticated());
     http.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
     http.addFilterBefore(new CorrelationIdFilter(), org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);

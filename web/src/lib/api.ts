@@ -1,4 +1,8 @@
 import { getStoredToken } from './auth';
+import { DEMO_MODE } from './mode';
+import { demoRequest } from './demo';
+export { DEMO_MODE } from './mode';
+export { resetDemo } from './demo';
 
 export type PlanStatus = 'DRAFT' | 'APPROVED';
 export type PlanPriority = 'ROUTINE' | 'PRIORITY' | 'CRITICAL';
@@ -60,6 +64,9 @@ const OPS_URL = import.meta.env.VITE_OPS_URL || 'http://localhost:8081';
 const AUDIT_URL = import.meta.env.VITE_AUDIT_URL || 'http://localhost:8082';
 
 async function request<T>(base: string, path: string, init: RequestInit = {}) {
+  if (DEMO_MODE) {
+    return demoRequest<T>(path, init);
+  }
   const token = getStoredToken();
   if (!token) {
     throw new ApiError(401, 'No token set. Choose a role to continue.');
@@ -73,10 +80,14 @@ async function request<T>(base: string, path: string, init: RequestInit = {}) {
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(`${base}${path}`, { ...init, headers });
+  let response: Response;
+  try { response = await fetch(`${base}${path}`, { ...init, headers }); }
+  catch { throw new ApiError(0, 'Cannot reach the local service. Start Docker Compose, then retry.', undefined, correlationId); }
   const responseCorrelationId = response.headers.get('X-Correlation-Id') ?? correlationId;
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data;
+  try { data = text ? JSON.parse(text) : null; }
+  catch { throw new ApiError(response.status, 'Service returned an unreadable response.', undefined, responseCorrelationId); }
 
   if (!response.ok) {
     const detail = data?.detail || data?.title || 'Request failed';

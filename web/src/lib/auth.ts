@@ -1,3 +1,4 @@
+import { DEMO_MODE } from './mode';
 export type Role = 'PLANNER' | 'OPS' | 'AUDITOR' | 'EXEC';
 
 const TOKEN_KEY = 'groundops.token';
@@ -25,6 +26,7 @@ async function sign(payload: string, secret: string) {
 }
 
 export async function createToken(role: Role) {
+  if (DEMO_MODE) return 'browser-simulation';
   const secret = import.meta.env.VITE_JWT_SECRET || 'local-dev-secret-32-bytes-minimum!';
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: 'HS256', typ: 'JWT' };
@@ -46,7 +48,8 @@ export function getStoredToken() {
 }
 
 export function getStoredRole(): Role | null {
-  return (localStorage.getItem(ROLE_KEY) as Role | null) ?? null;
+  const role = localStorage.getItem(ROLE_KEY);
+  return ['PLANNER', 'OPS', 'AUDITOR', 'EXEC'].includes(role ?? '') ? role as Role : DEMO_MODE ? 'PLANNER' : null;
 }
 
 export function storeAuth(role: Role, token: string) {

@@ -4,12 +4,23 @@
 
 GroundOps is a compact mission-ops pipeline: plan a mission window, approve it, generate ops tasking via events, record an audit trail, and surface an executive summary. It’s intentionally small (3 services + broker + UI) but built to feel like real ground/mission operations software.
 
+## Try it without infrastructure
+Requires Node.js 20 or newer.
+```bash
+cd web
+npm ci
+npm run dev
+```
+The default UI is a **synthetic browser walkthrough**. It keeps data in memory until refresh and simulates the event handoff; it does not run Java, JMS, or real authentication. Use Docker below to run the actual Java implementation. [Mode boundaries and hosting notes](docs/hosted-demo.md).
+
+This is an independent conceptual Ground Product Line exercise, not an operational system or an employer/customer project. Example assets, scenarios and audit records are fictional.
+
 ## At a glance
 - **What it is:** Mission planning → approval → event-driven tasking → audit trail → executive summary.
 - **Why it matters:** Mirrors ground/mission-ops patterns: integration across services, traceability, and clear security boundaries.
 - **How to run:** One command, local-only, free (Docker Compose).
 
-**Proof of traceability:** Every user action and message is tagged with a correlation ID visible in the UI and logs.
+**Traceability to inspect:** Mutating requests and their derived events carry correlation IDs. Approval and task creation share a trace; draft creation is a separate request. The browser walkthrough models the same relationship.
 
 ## Tech Stack (in one glance)
 - **Backend:** Java 21 + Spring Boot 3.x
@@ -22,9 +33,10 @@ GroundOps is a compact mission-ops pipeline: plan a mission window, approve it, 
 ## Where to start
 - Demo story: docs/demo-walkthrough.md
 - Architecture: docs/architecture.md
-- Proof (tests): tests/integration-tests/ + `./mvnw test`
+- Tests: tests/integration-tests/ + `./mvnw test` (requires Docker; broker integration coverage is not a full HTTP end-to-end test)
 
 ## Screenshots
+These captures show the synthetic browser walkthrough, including a generated plan, task and audit trace. They are not evidence of a running Java backend.
 ![Mission Planner](docs/screenshots/mission-planner.png)
 ![Ops Tasking](docs/screenshots/ops-tasking.png)
 ![Executive Summary](docs/screenshots/executive-summary.png)
@@ -91,7 +103,7 @@ Seed demo data (optional):
 - **Traceability built-in:** Correlation IDs propagate from HTTP → messaging → logs and UI.
 - **Security boundaries are explicit:** Roles are enforced per service (planner/ops/audit/exec).
 - **Operational credibility:** Containerized local stack and an integration test that exercises the broker.
-- **UX polish:** A mission-ops dashboard that’s clean, navigable, and grounded in the domain.
+- **Focused UI:** Four views follow one workflow, with explicit demo boundaries and constraint feedback.
 
 ## Docs
 - Architecture: docs/architecture.md
@@ -101,7 +113,7 @@ Seed demo data (optional):
 - Contracts: contracts/ (OpenAPI + event schemas)
 
 ## Design Notes (What I intentionally kept small)
-- **No cloud deployment:** Local-only so it runs free and fast.
+- **Static cloud walkthrough:** The hosted UI simulates the workflow; Java and Artemis run locally for free.
 - **No full identity provider:** JWTs are dev-mode for clarity.
 - **Minimal constraints engine:** A few realistic checks rather than a full planner.
 - **In-memory stores:** Enough to demonstrate flow without operational overhead.
