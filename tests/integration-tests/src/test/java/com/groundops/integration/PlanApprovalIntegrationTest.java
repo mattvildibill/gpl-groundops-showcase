@@ -16,7 +16,6 @@ import java.util.function.Supplier;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringApplication;
@@ -36,7 +35,6 @@ public class PlanApprovalIntegrationTest {
   private static ConfigurableApplicationContext opsContext;
   private static ConfigurableApplicationContext auditContext;
 
-  @AfterAll
   static void tearDown() {
     if (opsContext != null) {
       opsContext.close();
@@ -53,103 +51,113 @@ public class PlanApprovalIntegrationTest {
         .withEnv("ARTEMIS_PASSWORD", "admin")
         .withEnv("ARTEMIS_REQUIRE_LOGIN", "true")
         .withExposedPorts(61616)) {
-      broker.start();
+      ActiveMQConnectionFactory producerConnection = null;
+      try {
+        broker.start();
 
-      String brokerUrl = "tcp://localhost:" + broker.getMappedPort(61616);
+        String brokerUrl = "tcp://localhost:" + broker.getMappedPort(61616);
 
-      opsContext = SpringApplication.run(OpsServiceApplication.class,
-          "--server.port=0",
-          "--spring.artemis.broker-url=" + brokerUrl,
-          "--spring.artemis.user=admin",
-          "--spring.artemis.password=admin",
-          "--app.jwt.secret=local-dev-secret-32-bytes-minimum!");
+        opsContext = SpringApplication.run(OpsServiceApplication.class,
+            "--server.port=0",
+            "--spring.artemis.broker-url=" + brokerUrl,
+            "--spring.artemis.user=admin",
+            "--spring.artemis.password=admin",
+            "--app.jwt.secret=local-dev-secret-32-bytes-minimum!");
 
-      auditContext = SpringApplication.run(AuditServiceApplication.class,
-          "--server.port=0",
-          "--spring.artemis.broker-url=" + brokerUrl,
-          "--spring.artemis.user=admin",
-          "--spring.artemis.password=admin",
-          "--app.jwt.secret=local-dev-secret-32-bytes-minimum!");
+        auditContext = SpringApplication.run(AuditServiceApplication.class,
+            "--server.port=0",
+            "--spring.artemis.broker-url=" + brokerUrl,
+            "--spring.artemis.user=admin",
+            "--spring.artemis.password=admin",
+            "--app.jwt.secret=local-dev-secret-32-bytes-minimum!");
 
-      int opsPort = ((WebServerApplicationContext) opsContext).getWebServer().getPort();
-      int auditPort = ((WebServerApplicationContext) auditContext).getWebServer().getPort();
+        int opsPort = ((WebServerApplicationContext) opsContext).getWebServer().getPort();
+        int auditPort = ((WebServerApplicationContext) auditContext).getWebServer().getPort();
 
-      JmsTemplate jmsTemplate = new JmsTemplate(new ActiveMQConnectionFactory(brokerUrl, "admin", "admin"));
-      MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
-      converter.setObjectMapper(new ObjectMapper().findAndRegisterModules());
-      converter.setTargetType(MessageType.TEXT);
-      converter.setTypeIdPropertyName("_type");
-      converter.setTypeIdMappings(Map.of(PlanApprovedEvent.TYPE, PlanApprovedEvent.class));
-      jmsTemplate.setMessageConverter(converter);
+        producerConnection = new ActiveMQConnectionFactory(brokerUrl, "admin", "admin");
+        JmsTemplate jmsTemplate = new JmsTemplate(producerConnection);
+        MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
+        converter.setObjectMapper(new ObjectMapper().findAndRegisterModules());
+        converter.setTargetType(MessageType.TEXT);
+        converter.setTypeIdPropertyName("_type");
+        converter.setTypeIdMappings(Map.of(PlanApprovedEvent.TYPE, PlanApprovedEvent.class));
+        jmsTemplate.setMessageConverter(converter);
 
-      String correlationId = UUID.randomUUID().toString();
-      PlanApprovedEvent event = new PlanApprovedEvent(
-          UUID.randomUUID().toString(),
-          PlanApprovedEvent.TYPE,
-          Instant.now(),
-          correlationId,
-          "PLN-1001",
-          "AURORA-7",
-          Instant.now().plusSeconds(3600),
-          Instant.now().plusSeconds(7200),
-          "PRIORITY",
-          "demo-planner"
-      );
-      jmsTemplate.convertAndSend(EventDestinations.PLAN_APPROVED, event);
+        String correlationId = UUID.randomUUID().toString();
+        PlanApprovedEvent event = new PlanApprovedEvent(
+            UUID.randomUUID().toString(),
+            PlanApprovedEvent.TYPE,
+            Instant.now(),
+            correlationId,
+            "PLN-1001",
+            "AURORA-7",
+            Instant.now().plusSeconds(3600),
+            Instant.now().plusSeconds(7200),
+            "PRIORITY",
+            "demo-planner"
+        );
+        jmsTemplate.convertAndSend(EventDestinations.PLAN_APPROVED, event);
 
-      RestTemplate restTemplate = new RestTemplate();
-      ObjectMapper objectMapper = new ObjectMapper();
+        RestTemplate restTemplate = new RestTemplate();
+        ObjectMapper objectMapper = new ObjectMapper();
 
-      String opsToken = mintToken("OPS");
-      HttpHeaders opsHeaders = new HttpHeaders();
-      opsHeaders.setBearerAuth(opsToken);
-      HttpEntity<Void> opsEntity = new HttpEntity<>(opsHeaders);
+        String opsToken = mintToken("OPS");
+        HttpHeaders opsHeaders = new HttpHeaders();
+        opsHeaders.setBearerAuth(opsToken);
+        HttpEntity<Void> opsEntity = new HttpEntity<>(opsHeaders);
 
-      waitUntil(Duration.ofSeconds(10), Duration.ofMillis(300), () -> {
-        ResponseEntity<String> response = restTemplate.exchange(
+        waitUntil(Duration.ofSeconds(10), Duration.ofMillis(300), () -> {
+          ResponseEntity<String> response = restTemplate.exchange(
+              "http://localhost:" + opsPort + "/api/tasks",
+              HttpMethod.GET,
+              opsEntity,
+              String.class
+          );
+          try {
+            JsonNode root = objectMapper.readTree(response.getBody());
+            return root.isArray() && root.size() > 0;
+          } catch (Exception ex) {
+            return false;
+          }
+        });
+
+        ResponseEntity<String> tasksResponse = restTemplate.exchange(
             "http://localhost:" + opsPort + "/api/tasks",
             HttpMethod.GET,
             opsEntity,
             String.class
         );
-        try {
-          JsonNode root = objectMapper.readTree(response.getBody());
-          return root.isArray() && root.size() > 0;
-        } catch (Exception ex) {
-          return false;
+        JsonNode tasks = objectMapper.readTree(tasksResponse.getBody());
+        Assertions.assertTrue(tasks.isArray());
+        Assertions.assertEquals(1, tasks.size());
+        Assertions.assertEquals(correlationId, tasks.get(0).get("correlationId").asText());
+
+        String auditToken = mintToken("AUDITOR");
+        HttpHeaders auditHeaders = new HttpHeaders();
+        auditHeaders.setBearerAuth(auditToken);
+        HttpEntity<Void> auditEntity = new HttpEntity<>(auditHeaders);
+
+        waitUntil(Duration.ofSeconds(10), Duration.ofMillis(300), () -> {
+          ResponseEntity<String> response = restTemplate.exchange(
+              "http://localhost:" + auditPort + "/api/audit",
+              HttpMethod.GET,
+              auditEntity,
+              String.class
+          );
+          try {
+            JsonNode root = objectMapper.readTree(response.getBody());
+            return root.isArray() && root.findValuesAsText("action").contains("OPS_TASK_CREATED");
+          } catch (Exception ex) {
+            return false;
+          }
+        });
+      } finally {
+        // Stop consumers before the broker to avoid reconnect loops during teardown.
+        tearDown();
+        if (producerConnection != null) {
+          producerConnection.close();
         }
-      });
-
-      ResponseEntity<String> tasksResponse = restTemplate.exchange(
-          "http://localhost:" + opsPort + "/api/tasks",
-          HttpMethod.GET,
-          opsEntity,
-          String.class
-      );
-      JsonNode tasks = objectMapper.readTree(tasksResponse.getBody());
-      Assertions.assertTrue(tasks.isArray());
-      Assertions.assertEquals(1, tasks.size());
-      Assertions.assertEquals(correlationId, tasks.get(0).get("correlationId").asText());
-
-      String auditToken = mintToken("AUDITOR");
-      HttpHeaders auditHeaders = new HttpHeaders();
-      auditHeaders.setBearerAuth(auditToken);
-      HttpEntity<Void> auditEntity = new HttpEntity<>(auditHeaders);
-
-      waitUntil(Duration.ofSeconds(10), Duration.ofMillis(300), () -> {
-        ResponseEntity<String> response = restTemplate.exchange(
-            "http://localhost:" + auditPort + "/api/audit",
-            HttpMethod.GET,
-            auditEntity,
-            String.class
-        );
-        try {
-          JsonNode root = objectMapper.readTree(response.getBody());
-          return root.isArray() && root.findValuesAsText("action").contains("OPS_TASK_CREATED");
-        } catch (Exception ex) {
-          return false;
-        }
-      });
+      }
     }
   }
 
